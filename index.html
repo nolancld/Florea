@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Florea">
+<meta name="theme-color" content="#1a3328">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<title>Florea</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --forest:#1a3328;--mint:#3ab86a;--mint-light:rgba(58,184,106,0.15);
+  --clay:#c06040;--cream:#f5f1e8;--cream-dark:#ede7d8;
+  --text:#1a3328;--text-mid:#527060;--text-light:#8aaa95;--radius:18px;
+}
+body{background:var(--cream);font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;color:var(--text);min-height:100dvh;max-width:440px;margin:0 auto;padding-bottom:100px}
+.header{background:var(--forest);padding:52px 20px 24px;border-radius:0 0 28px 28px}
+.header-top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.header-logo{width:44px;height:44px;border-radius:12px;object-fit:contain;flex-shrink:0;background:rgba(255,255,255,0.08);padding:4px}
+.header-titles{flex:1}
+.header-app{font-size:11px;color:#7db89a;letter-spacing:2px;text-transform:uppercase}
+.header-title{font-family:Georgia,serif;font-size:24px;color:var(--cream);letter-spacing:-0.3px}
+.sync-badge{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(58,184,106,0.2);color:#7de0a0;border:1px solid rgba(58,184,106,0.3);white-space:nowrap}
+.sync-badge.offline{background:rgba(192,96,64,0.2);color:#ffb89a;border-color:rgba(192,96,64,0.3)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stat{background:rgba(255,255,255,0.07);border-radius:14px;padding:12px}
+.stat.urgent-stat{background:rgba(192,96,64,0.28);border:1px solid rgba(192,96,64,0.45)}
+.stat-icon{font-size:18px;margin-bottom:2px}
+.stat-val{font-size:22px;font-weight:800;color:var(--cream);line-height:1.1}
+.stat.urgent-stat .stat-val{color:#ffb899}
+.stat-label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:1px}
+.filters{display:flex;gap:8px;padding:16px 20px 8px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filter-btn{padding:7px 16px;border-radius:99px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;background:rgba(28,51,40,0.08);color:var(--text-mid);transition:all 0.2s}
+.filter-btn.active{background:var(--forest);color:#fff}
+.list{padding:8px 20px}
+.card{border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1.5px solid var(--cream-dark);background:#fff}
+.card.urgent{background:#fff8f5;border-color:#e8b09a;box-shadow:0 4px 18px rgba(192,96,64,0.15)}
+.card.soon{background:#fffcf5;border-color:#e8d09a}
+.card.good{background:#f8fdf9;border-color:#b8e0c8}
+.card-top{display:flex;align-items:flex-start;gap:12px}
+.plant-icon{width:52px;height:52px;border-radius:15px;background:var(--mint-light);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.card-info{flex:1;min-width:0}
+.card-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+.card-name{font-weight:700;font-size:16px;color:var(--text);font-family:Georgia,serif}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;color:#fff;white-space:nowrap}
+.badge.urgent{background:#c06040}.badge.soon{background:#d4924a}
+.badge.ok,.badge.good{background:#3ab86a}.badge.unknown{background:var(--text-light)}
+.card-freq{font-size:12px;color:var(--text-light);margin-bottom:7px}
+.humidity-bar{height:5px;background:var(--cream-dark);border-radius:99px;overflow:hidden;margin-bottom:7px}
+.humidity-fill{height:100%;border-radius:99px;transition:width 0.6s cubic-bezier(.4,0,.2,1)}
+.card-meta{font-size:11px;color:var(--text-light)}
+.card-actions{display:flex;gap:8px;margin-top:12px}
+.btn-water{flex:1;padding:10px;background:var(--mint);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:opacity 0.15s}
+.btn-water:active{opacity:0.75}
+.btn-icon{padding:10px 13px;border:none;border-radius:12px;font-size:15px;cursor:pointer}
+.btn-edit{background:rgba(28,51,40,0.08);color:var(--text)}
+.btn-delete{background:rgba(192,96,64,0.12);color:#c06040}
+.empty{text-align:center;padding:60px 20px;color:var(--text-light)}
+.empty-icon{font-size:52px;margin-bottom:14px}
+.empty-title{font-family:Georgia,serif;font-size:20px;color:var(--text-mid);margin-bottom:6px}
+.empty-sub{font-size:14px}
+.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;padding:12px 20px 36px;background:linear-gradient(to top,var(--cream) 65%,transparent);pointer-events:none}
+.fab{width:100%;padding:16px;background:var(--mint);color:#fff;border:none;border-radius:16px;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 6px 24px rgba(58,184,106,0.4);pointer-events:all;transition:transform 0.15s}
+.fab:active{transform:scale(0.97)}
+.overlay{position:fixed;inset:0;background:rgba(26,51,40,0.55);backdrop-filter:blur(5px);display:flex;align-items:flex-end;z-index:200;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--cream);border-radius:24px 24px 0 0;padding:24px 20px 48px;width:100%;max-height:90dvh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1)}
+.overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.modal-title{font-family:Georgia,serif;font-size:20px;color:var(--text)}
+.modal-close{background:rgba(28,51,40,0.1);border:none;width:32px;height:32px;border-radius:99px;font-size:16px;cursor:pointer;color:var(--text)}
+.field{margin-bottom:18px}
+.label{display:block;font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+input[type=text],input[type=number]{width:100%;padding:13px 15px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;transition:border-color 0.2s}
+input:focus{border-color:var(--mint)}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px}
+.emoji-btn{aspect-ratio:1;border-radius:10px;border:2px solid transparent;background:rgba(28,51,40,0.06);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.emoji-btn.selected{border-color:var(--mint);background:var(--mint-light)}
+.custom-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.custom-row input{flex:1;text-align:center;font-size:22px;padding:10px;border-radius:12px}
+.freq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.freq-btn{padding:11px 10px;border-radius:12px;text-align:center;border:1.5px solid #d8d0c0;background:#fff;font-size:13px;color:var(--text-mid);cursor:pointer;transition:all 0.15s;font-family:inherit}
+.freq-btn.selected{border-color:var(--mint);background:var(--mint-light);color:var(--text);font-weight:700}
+.freq-custom-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.freq-custom-row span{font-size:13px;color:var(--text-mid);white-space:nowrap}
+.freq-custom-row input{width:80px;text-align:center;flex-shrink:0}
+.btn-submit{width:100%;padding:15px;background:var(--forest);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:16px;cursor:pointer;margin-top:8px}
+.btn-submit:disabled{background:#b0c8b8;cursor:not-allowed}
+.toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--forest);color:#fff;padding:12px 22px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity 0.3s,transform 0.3s;z-index:300;white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.loading-screen{position:fixed;inset:0;background:var(--forest);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;transition:opacity 0.4s}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-logo{width:80px;height:80px;margin-bottom:20px;animation:pulse 1.5s infinite}
+.loading-name{font-family:Georgia,serif;font-size:28px;color:var(--cream);margin-bottom:8px}
+.loading-sub{font-size:13px;color:#7db89a}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.95)}}
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loading-screen">
+  <img class="loading-logo" src="icon.png" alt="Florea">
+  <div class="loading-name">Florea</div>
+  <div class="loading-sub" id="loading-sub">Connexion…</div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <img class="header-logo" src="icon.png" alt="Florea">
+    <div class="header-titles">
+      <div class="header-app">Florea</div>
+      <div class="header-title">Mon Jardin 🌿</div>
+    </div>
+    <div class="sync-badge" id="sync-badge">⏳</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-icon">🪴</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">Plantes</div></div>
+    <div class="stat" id="stat-urgent-box"><div class="stat-icon">💧</div><div class="stat-val" id="stat-urgent">0</div><div class="stat-label">À arroser</div></div>
+    <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="stat-ok">0</div><div class="stat-label">OK</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Toutes</button>
+  <button class="filter-btn" data-filter="urgent" onclick="setFilter('urgent')">⚠️ Urgent</button>
+  <button class="filter-btn" data-filter="soon" onclick="setFilter('soon')">🔜 Bientôt</button>
+  <button class="filter-btn" data-filter="good" onclick="setFilter('good')">✅ OK</button>
+</div>
+
+<div class="list" id="plant-list"></div>
+
+<div class="fab-wrap">
+  <button class="fab" onclick="openAdd()">+ Ajouter une plante</button>
+</div>
+
+<div class="overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Nouvelle plante</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="field">
+      <label class="label">Nom de la plante</label>
+      <input type="text" id="f-name" placeholder="ex : Monstera, Basilic…" oninput="checkForm()">
+    </div>
+    <div class="field">
+      <label class="label">Emoji</label>
+      <div class="emoji-grid" id="emoji-grid"></div>
+      <div class="custom-row">
+        <input type="text" id="f-custom-emoji" placeholder="✍️ Autre emoji…" maxlength="4" oninput="onCustomEmoji(this.value)">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Fréquence d'arrosage</label>
+      <div class="freq-grid" id="freq-grid"></div>
+      <div class="freq-custom-row">
+        <span>Personnalisé :</span>
+        <input type="number" id="f-custom-days" min="1" max="365" placeholder="ex : 5" oninput="onCustomFreq(this.value)">
+        <span>jours</span>
+      </div>
+    </div>
+    <button class="btn-submit" id="btn-submit" disabled onclick="submitForm()">Ajouter la plante 🌱</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDPTyU5PPLCcu5sEs9qomJBkuom4tQsPbo",
+  authDomain: "florea-e8098.firebaseapp.com",
+  projectId: "florea-e8098",
+  storageBucket: "florea-e8098.firebasestorage.app",
+  messagingSenderId: "571042044355",
+  appId: "1:571042044355:web:309ef9f45012b5317e4576"
+};
+
+const EMOJIS = [
+  "🌿","🌱","🪴","🌵","🌸","🌺","🍀","🌻","🌾","🪷","🌳","🍃",
+  "🌴","🎋","🎍","🍁","🌲","🪨","🌼","🌷","💐","🍄","🌰","🫘",
+  "🍅","🌽","🥕","🥦","🧅","🫛","🌶️","🫚","🫐","🍋","🍇","🍓",
+  "🪸","🦋","🐝","🐛","🐌","🦗","🐞","🦎","🌊","⛅","🌤️","☀️",
+  "🏡","💚","🫧","🌡️","🔔","⏰","📅","🗓️",
+];
+const FREQS = [
+  {label:"Quotidien",days:1},{label:"2 jours",days:2},{label:"3 jours",days:3},
+  {label:"1× / semaine",days:7},{label:"10 jours",days:10},
+  {label:"2× / mois",days:15},{label:"1× / mois",days:30},{label:"2 mois",days:60},
+];
+
+let plants=[], db=null, unsub=null;
+let curFilter="all", editId=null, selEmoji=EMOJIS[0], selDays=7;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  listenPlants();
+} catch(e) {
+  console.error(e); fallback();
+}
+
+function listenPlants() {
+  if (unsub) unsub();
+  unsub = onSnapshot(collection(db,"plants"), snap => {
+    plants = snap.docs.map(d => ({id:d.id,...d.data()}));
+    badge("🟢 En ligne", false);
+    hideLoading(); render();
+  }, err => { console.error(err); fallback(); });
+}
+
+function fallback() {
+  try { plants = JSON.parse(localStorage.getItem("florea_local"))||[]; } catch { plants=[]; }
+  badge("📴 Local", true);
+  hideLoading(); render();
+}
+
+function hideLoading() {
+  const s = document.getElementById("loading-screen");
+  s.classList.add("hidden");
+  setTimeout(()=>s.style.display="none", 400);
+}
+function badge(txt, offline) {
+  const b = document.getElementById("sync-badge");
+  b.textContent=txt; b.classList.toggle("offline",offline);
+}
+async function fbSet(plant) {
+  if (!db) { localStorage.setItem("florea_local",JSON.stringify(plants)); render(); return; }
+  const {id,...data}=plant;
+  await setDoc(doc(db,"plants",id), {...data,_upd:serverTimestamp()});
+}
+async function fbDel(id) {
+  if (!db) { localStorage.setItem("florea_local",JSON.stringify(plants)); render(); return; }
+  await deleteDoc(doc(db,"plants",id));
+}
+function daysLeft(p) {
+  if (!p.lastWatered) return null;
+  const t=p.lastWatered.toDate?p.lastWatered.toDate().getTime():new Date(p.lastWatered).getTime();
+  return Math.ceil((t+p.frequency*86400000-Date.now())/86400000);
+}
+function statusOf(p) {
+  const d=daysLeft(p);
+  if(d===null) return "unknown"; if(d<=0) return "urgent";
+  if(d<=1) return "soon"; if(d<=3) return "ok"; return "good";
+}
+function fmtDate(v) {
+  if(!v) return "Jamais";
+  const d=v.toDate?v.toDate():new Date(v);
+  return d.toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+}
+function freqLabel(days) { return FREQS.find(x=>x.days===days)?.label||`Tous les ${days}j`; }
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function render() {
+  const urgent=plants.filter(p=>{const s=statusOf(p);return s==="urgent"||s==="unknown";});
+  document.getElementById("stat-total").textContent=plants.length;
+  document.getElementById("stat-urgent").textContent=urgent.length;
+  document.getElementById("stat-ok").textContent=plants.length-urgent.length;
+  document.getElementById("stat-urgent-box").classList.toggle("urgent-stat",urgent.length>0);
+  let list=plants.slice();
+  if(curFilter==="urgent") list=plants.filter(p=>{const s=statusOf(p);return s==="urgent"||s==="unknown";});
+  else if(curFilter==="soon") list=plants.filter(p=>statusOf(p)==="soon");
+  else if(curFilter==="good") list=plants.filter(p=>{const s=statusOf(p);return s==="ok"||s==="good";});
+  list.sort((a,b)=>(daysLeft(a)??-999)-(daysLeft(b)??-999));
+  const el=document.getElementById("plant-list");
+  if(!list.length) {
+    el.innerHTML=`<div class="empty">
+      <div class="empty-icon">${plants.length===0?"🌾":"✅"}</div>
+      <div class="empty-title">${plants.length===0?"Votre jardin est vide":"Tout est en ordre !"}</div>
+      <div class="empty-sub">${plants.length===0?"Ajoutez votre première plante 👇":"Toutes vos plantes sont bien hydratées 🎉"}</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=list.map(p=>{
+    const s=statusOf(p),d=daysLeft(p);
+    const pct=d===null?0:Math.max(0,Math.min(100,(d/p.frequency)*100));
+    const bar=s==="urgent"?"#c06040":s==="soon"?"#d4924a":s==="ok"?"#80c090":"#3ab86a";
+    const bdg=s==="urgent"?"⚠️ À arroser !":s==="unknown"?"Jamais arrosé":s==="soon"?"Demain":`Dans ${d}j`;
+    return `<div class="card ${s}">
+      <div class="card-top">
+        <div class="plant-icon">${p.emoji}</div>
+        <div class="card-info">
+          <div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div>
+          <div class="card-freq">💧 ${freqLabel(p.frequency)}</div>
+          <div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div>
+          <div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button>
+        <button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button>
+        <button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+window.setFilter=f=>{
+  curFilter=f;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===f));
+  render();
+};
+window.waterPlant=async id=>{
+  const p=plants.find(x=>x.id===id); if(!p) return;
+  p.lastWatered=new Date().toISOString();
+  await fbSet(p); showToast(`${p.emoji} ${p.name} arrosé !`);
+};
+window.deletePlant=async id=>{
+  const p=plants.find(x=>x.id===id);
+  if(!p||!confirm(`Supprimer « ${p.name} » ?`)) return;
+  plants=plants.filter(x=>x.id!==id);
+  await fbDel(id); showToast("Plante supprimée");
+};
+function buildEmojis() {
+  document.getElementById("emoji-grid").innerHTML=EMOJIS.map(e=>
+    `<button class="emoji-btn${e===selEmoji?" selected":""}" onclick="selE('${e}')">${e}</button>`
+  ).join("");
+}
+function buildFreqs() {
+  document.getElementById("freq-grid").innerHTML=FREQS.map(f=>
+    `<button class="freq-btn${f.days===selDays?" selected":""}" onclick="selF(${f.days})">${f.label}</button>`
+  ).join("");
+}
+window.selE=e=>{ selEmoji=e; document.getElementById("f-custom-emoji").value=""; buildEmojis(); };
+window.onCustomEmoji=v=>{
+  const c=[...v.trim()]; if(c.length){ selEmoji=c[0]; document.querySelectorAll(".emoji-btn").forEach(b=>b.classList.remove("selected")); }
+};
+window.selF=d=>{ selDays=d; document.getElementById("f-custom-days").value=""; buildFreqs(); };
+window.onCustomFreq=v=>{
+  const n=parseInt(v); if(n>=1&&n<=365){ selDays=n; document.querySelectorAll(".freq-btn").forEach(b=>b.classList.remove("selected")); }
+};
+window.checkForm=()=>{
+  document.getElementById("btn-submit").disabled=!document.getElementById("f-name").value.trim();
+};
+window.openAdd=()=>{
+  editId=null; selEmoji=EMOJIS[0]; selDays=7;
+  document.getElementById("modal-title").textContent="Nouvelle plante";
+  document.getElementById("btn-submit").textContent="Ajouter la plante 🌱";
+  document.getElementById("f-name").value="";
+  document.getElementById("f-custom-emoji").value="";
+  document.getElementById("f-custom-days").value="";
+  document.getElementById("btn-submit").disabled=true;
+  buildEmojis(); buildFreqs();
+  document.getElementById("modal-overlay").classList.add("open");
+};
+window.openEdit=id=>{
+  const p=plants.find(x=>x.id===id); if(!p) return;
+  editId=id; selEmoji=p.emoji; selDays=p.frequency;
+  document.getElementById("modal-title").textContent="Modifier la plante";
+  document.getElementById("btn-submit").textContent="Enregistrer ✓";
+  document.getElementById("f-name").value=p.name;
+  document.getElementById("f-custom-emoji").value="";
+  document.getElementById("f-custom-days").value="";
+  document.getElementById("btn-submit").disabled=false;
+  buildEmojis(); buildFreqs();
+  document.getElementById("modal-overlay").classList.add("open");
+};
+window.closeModal=()=>document.getElementById("modal-overlay").classList.remove("open");
+window.handleOverlayClick=e=>{ if(e.target===document.getElementById("modal-overlay")) window.closeModal(); };
+window.submitForm=async()=>{
+  const name=document.getElementById("f-name").value.trim(); if(!name) return;
+  const cd=parseInt(document.getElementById("f-custom-days").value);
+  if(!isNaN(cd)&&cd>=1) selDays=cd;
+  const ce=[...document.getElementById("f-custom-emoji").value.trim()];
+  if(ce.length) selEmoji=ce[0];
+  const existing=editId?plants.find(x=>x.id===editId):null;
+  const plant={
+    id:editId||Date.now().toString(),
+    name,emoji:selEmoji,frequency:selDays,
+    lastWatered:existing?.lastWatered||null,
+    createdAt:existing?.createdAt||new Date().toISOString(),
+  };
+  if(!editId) plants.push(plant);
+  else{ const i=plants.findIndex(x=>x.id===editId); if(i>-1) plants[i]=plant; }
+  await fbSet(plant);
+  window.closeModal();
+  showToast(editId?"Plante modifiée ✓":`${selEmoji} ${name} ajouté !`);
+};
+let tt;
+window.showToast=msg=>{
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2500);
+};
+
+// PWA manifest
+const mf={
+  name:"Florea",short_name:"Florea",start_url:"./",display:"standalone",
+  background_color:"#1a3328",theme_color:"#1a3328",
+  icons:[
+    {src:"icon.png",sizes:"192x192",type:"image/png"},
+    {src:"icon.png",sizes:"512x512",type:"image/png"}
+  ]
+};
+const ml=document.createElement("link");
+ml.rel="manifest";
+ml.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));
+document.head.appendChild(ml);
+</script>
+</body>
+</html>
