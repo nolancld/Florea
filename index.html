@@ -117,6 +117,7 @@ input:focus{border-color:var(--mint)}
       <div class="header-title">Mon Jardin 🌿</div>
     </div>
     <div class="sync-badge" id="sync-badge">⏳</div>
+    <button id="notif-btn" onclick="setupNotifications()" style="background:rgba(255,255,255,0.1);border:none;border-radius:10px;padding:6px 10px;font-size:18px;cursor:pointer;" title="Activer les notifications">🔔</button>
   </div>
   <div class="stats">
     <div class="stat"><div class="stat-icon">🪴</div><div class="stat-val" id="stat-total">0</div><div class="stat-label">Plantes</div></div>
@@ -213,7 +214,7 @@ function listenPlants() {
   unsub = onSnapshot(collection(db,"plants"), snap => {
     plants = snap.docs.map(d => ({id:d.id,...d.data()}));
     badge("🟢 En ligne", false);
-    hideLoading(); render();
+    hideLoading(); render(); scheduleNotifs(plants);
   }, err => { console.error(err); fallback(); });
 }
 
@@ -390,6 +391,85 @@ window.showToast=msg=>{
   t.textContent=msg; t.classList.add("show");
   clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2500);
 };
+
+
+// ── NOTIFICATIONS LOCALES ─────────────────────────────────────────────
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+function scheduleNotifs(plantsList) {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  navigator.serviceWorker.ready.then(reg => {
+    // On stocke les notifs programmées dans localStorage
+    const scheduled = [];
+    plantsList.forEach(p => {
+      if (!p.lastWatered) return;
+      const t = p.lastWatered.toDate ? p.lastWatered.toDate().getTime() : new Date(p.lastWatered).getTime();
+      const nextTime = t + p.frequency * 86400000;
+      const now = Date.now();
+      if (nextTime > now) {
+        scheduled.push({
+          id: p.id,
+          name: p.name,
+          emoji: p.emoji,
+          fireAt: nextTime,
+        });
+      }
+    });
+    localStorage.setItem('florea_scheduled', JSON.stringify(scheduled));
+    // Dire au SW de vérifier
+    if (reg.active) {
+      reg.active.postMessage({ type: 'SCHEDULE', plants: scheduled });
+    }
+  }).catch(() => {});
+}
+
+async function setupNotifications() {
+  const granted = await requestNotifPermission();
+  if (!granted) return;
+  scheduleNotifs(plants);
+}
+
+// Appeler scheduleNotifs à chaque sync Firebase
+
+// ── SERVICE WORKER (inline) ───────────────────────────────────────────
+const swCode = `
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SCHEDULE') {
+    // Annuler les anciennes alarmes et reprogrammer
+    e.data.plants.forEach(p => {
+      const delay = p.fireAt - Date.now();
+      if (delay > 0 && delay < 7 * 24 * 3600 * 1000) {
+        setTimeout(() => {
+          self.registration.showNotification('Florea 🌿', {
+            body: p.emoji + ' ' + p.name + ' a besoin d\'eau !',
+            icon: '/icon.png',
+            badge: '/icon.png',
+            tag: 'plant-' + p.id,
+            renotify: true,
+          });
+        }, delay);
+      }
+    });
+  }
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/'));
+});
+`;
+
+const swBlob = new Blob([swCode], {type: 'application/javascript'});
+const swUrl = URL.createObjectURL(swBlob);
+navigator.serviceWorker.register(swUrl).catch(() => {});
 
 // PWA manifest
 const mf={
