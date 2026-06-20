@@ -202,9 +202,11 @@ try {
 } catch(e){console.error(e);fallback();}
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('./sw.js')
     .then(reg=>{ swReg=reg; checkExistingSub(); })
-    .catch(e=>console.log('SW:',e));
+    .catch(e=>{ console.log('SW error:',e); window.__swError = e.message; });
+} else {
+  window.__swError = 'Service Worker non supporté';
 }
 
 function listenPlants(){
