@@ -109,7 +109,7 @@ input:focus{border-color:var(--mint)}
 
 <div class="header">
   <div class="header-top">
-    <img class="header-logo" src="icon.png" alt="Florea">
+    <img class="header-logo" src="icon.png" alt="Florea" onclick="handleLogoTap()" style="cursor:pointer">
     <div class="header-titles">
       <div class="header-app">Florea</div>
       <div class="header-title">Mon Jardin 🌿</div>
@@ -238,7 +238,19 @@ async function checkExistingSub(){
 
 window.toggleNotif=async function(){
   if(!('PushManager' in window)){ showToast("⚠️ Installe l'app via Safari d'abord"); return; }
-  if(!swReg){ showToast("Service worker non prêt"); return; }
+  if(!swReg){
+    if(window.__swError){
+      showToast("Erreur SW: "+window.__swError);
+    } else {
+      try{
+        swReg = await navigator.serviceWorker.register('./sw.js');
+        showToast("Service worker prêt, réessaie 🔔");
+      }catch(e){
+        showToast("Erreur SW: "+e.message);
+      }
+    }
+    return;
+  }
 
   if(pushSub){
     // Désactiver
@@ -349,6 +361,33 @@ window.handleOverlayClick=e=>{if(e.target===document.getElementById("modal-overl
 window.submitForm=async()=>{const name=document.getElementById("f-name").value.trim();if(!name)return;const cd=parseInt(document.getElementById("f-custom-days").value);if(!isNaN(cd)&&cd>=1)selDays=cd;const ce=[...document.getElementById("f-custom-emoji").value.trim()];if(ce.length)selEmoji=ce[0];const ex=editId?plants.find(x=>x.id===editId):null;const plant={id:editId||Date.now().toString(),name,emoji:selEmoji,frequency:selDays,lastWatered:ex?.lastWatered||null,createdAt:ex?.createdAt||new Date().toISOString()};if(!editId)plants.push(plant);else{const i=plants.findIndex(x=>x.id===editId);if(i>-1)plants[i]=plant;}await fbSet(plant);window.closeModal();showToast(editId?"Plante modifiée ✓":`${selEmoji} ${name} ajouté !`);};
 let tt;
 window.showToast=msg=>{const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2500);};
+
+// ── MODE TEST CACHÉ : triple-tap sur le logo ───────────────────────────
+let logoTapCount=0, logoTapTimer=null;
+window.handleLogoTap=function(){
+  logoTapCount++;
+  clearTimeout(logoTapTimer);
+  logoTapTimer=setTimeout(()=>{ logoTapCount=0; }, 800);
+  if(logoTapCount>=3){
+    logoTapCount=0;
+    sendTestNotif();
+  }
+};
+async function sendTestNotif(){
+  showToast("🧪 Envoi de la notif test...");
+  try{
+    const res = await fetch(SERVER_URL+'/test-notif', { method:'POST' });
+    const data = await res.json();
+    if(data.ok){
+      showToast(`✅ Test envoyé à ${data.sent}/${data.total} appareil(s)`);
+    } else {
+      showToast(`⚠️ ${data.msg||'Erreur test'}`);
+    }
+  }catch(e){
+    showToast("❌ Erreur serveur: "+e.message);
+  }
+}
+
 const mf={name:"Florea",short_name:"Florea",start_url:"./",display:"standalone",background_color:"#1a3328",theme_color:"#1a3328",icons:[{src:"icon.png",sizes:"192x192",type:"image/png"},{src:"icon.png",sizes:"512x512",type:"image/png"}]};
 const ml=document.createElement("link");ml.rel="manifest";ml.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:"application/json"}));document.head.appendChild(ml);
 </script>
