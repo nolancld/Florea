@@ -97,6 +97,63 @@ input:focus{border-color:var(--mint)}
 .loading-name{font-family:Georgia,serif;font-size:28px;color:var(--cream);margin-bottom:8px}
 .loading-sub{font-size:13px;color:#7db89a}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.95)}}
+
+/* TABS */
+.tabs{display:flex;gap:6px;padding:16px 20px 4px}
+.tab-btn{flex:1;padding:10px 8px;border-radius:14px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:rgba(28,51,40,0.06);color:var(--text-mid);display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s}
+.tab-btn.active{background:var(--forest);color:#fff}
+.view{display:none}
+.view.active{display:block}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px}
+.cal-nav-btn{background:rgba(28,51,40,0.08);border:none;width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;color:var(--text)}
+.cal-month-label{font-family:Georgia,serif;font-size:17px;color:var(--text);font-weight:700;text-transform:capitalize}
+.cal-grid{padding:0 20px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
+.cal-weekday{text-align:center;font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-mid);position:relative;background:rgba(28,51,40,0.03);cursor:pointer}
+.cal-day.empty{background:transparent;cursor:default}
+.cal-day.today{border:1.5px solid var(--forest)}
+.cal-day-num{font-weight:600}
+.cal-dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center;max-width:24px}
+.cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-dot.due{background:#d4924a}
+.cal-dot.watered{background:#3ab86a}
+.cal-legend{display:flex;gap:16px;padding:14px 20px;font-size:11px;color:var(--text-mid)}
+.cal-legend-item{display:flex;align-items:center;gap:6px}
+.cal-legend-dot{width:7px;height:7px;border-radius:50%}
+
+.cal-detail{padding:4px 20px 20px}
+.cal-detail-title{font-size:13px;font-weight:700;color:var(--text-mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+.cal-detail-card{background:#fff;border:1.5px solid var(--cream-dark);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.cal-detail-icon{font-size:20px}
+.cal-detail-info{flex:1}
+.cal-detail-name{font-weight:700;font-size:14px;color:var(--text)}
+.cal-detail-sub{font-size:11px;color:var(--text-light)}
+.cal-detail-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;color:#fff}
+
+/* STATS */
+.stats-view{padding:8px 20px 20px}
+.stats-hero{background:var(--forest);border-radius:18px;padding:20px;margin-bottom:16px;text-align:center}
+.stats-hero-num{font-size:36px;font-weight:800;color:#fff;font-family:Georgia,serif}
+.stats-hero-label{font-size:12px;color:#7db89a;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stats-card{background:#fff;border:1.5px solid var(--cream-dark);border-radius:14px;padding:14px}
+.stats-card-icon{font-size:20px;margin-bottom:6px}
+.stats-card-val{font-size:20px;font-weight:800;color:var(--text);font-family:Georgia,serif}
+.stats-card-label{font-size:11px;color:var(--text-light);margin-top:2px}
+.stats-section-title{font-size:13px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;margin:18px 0 10px}
+.stats-rank-row{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--cream-dark);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.stats-rank-icon{font-size:18px}
+.stats-rank-name{flex:1;font-size:13px;font-weight:600;color:var(--text)}
+.stats-rank-val{font-size:12px;color:var(--text-light);font-weight:700}
+.stats-bar-row{margin-bottom:10px}
+.stats-bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text-mid);margin-bottom:4px}
+.stats-bar-track{height:8px;background:var(--cream-dark);border-radius:99px;overflow:hidden}
+.stats-bar-fill{height:100%;background:var(--mint);border-radius:99px}
+.stats-empty{text-align:center;padding:40px 20px;color:var(--text-light);font-size:13px}
 </style>
 </head>
 <body>
@@ -126,6 +183,13 @@ input:focus{border-color:var(--mint)}
   </div>
 </div>
 
+<div class="tabs">
+  <button class="tab-btn active" data-tab="plants" onclick="setTab('plants')">🪴 Plantes</button>
+  <button class="tab-btn" data-tab="calendar" onclick="setTab('calendar')">📅 Calendrier</button>
+  <button class="tab-btn" data-tab="stats" onclick="setTab('stats')">📊 Stats</button>
+</div>
+
+<div class="view active" id="view-plants">
 <div class="filters">
   <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Toutes</button>
   <button class="filter-btn" data-filter="urgent" onclick="setFilter('urgent')">⚠️ Urgent</button>
@@ -134,8 +198,33 @@ input:focus{border-color:var(--mint)}
 </div>
 
 <div class="list" id="plant-list"></div>
+</div>
 
-<div class="fab-wrap">
+<div class="view" id="view-calendar">
+  <div class="cal-header">
+    <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+    <div class="cal-month-label" id="cal-month-label"></div>
+    <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+  </div>
+  <div class="cal-grid">
+    <div class="cal-weekdays">
+      <div class="cal-weekday">L</div><div class="cal-weekday">M</div><div class="cal-weekday">M</div>
+      <div class="cal-weekday">J</div><div class="cal-weekday">V</div><div class="cal-weekday">S</div><div class="cal-weekday">D</div>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
+  </div>
+  <div class="cal-legend">
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#d4924a"></div>À arroser</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#3ab86a"></div>Arrosé</div>
+  </div>
+  <div class="cal-detail" id="cal-detail"></div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="stats-view" id="stats-content"></div>
+</div>
+
+<div class="fab-wrap" id="fab-wrap">
   <button class="fab" onclick="openAdd()">+ Ajouter une plante</button>
 </div>
 
@@ -192,6 +281,7 @@ const EMOJIS=["🌿","🌱","🪴","🌵","🌸","🌺","🍀","🌻","🌾","�
 const FREQS=[{label:"Quotidien",days:1},{label:"2 jours",days:2},{label:"3 jours",days:3},{label:"1× / semaine",days:7},{label:"10 jours",days:10},{label:"2× / mois",days:15},{label:"1× / mois",days:30},{label:"2 mois",days:60}];
 
 let plants=[],db=null,unsub=null,swReg=null,pushSub=null;
+let curTab="plants",calDate=new Date();
 let curFilter="all",editId=null,selEmoji=EMOJIS[0],selDays=7;
 
 // ── INIT ──────────────────────────────────────────────────────────────
@@ -214,6 +304,8 @@ function listenPlants(){
   unsub=onSnapshot(collection(db,"plants"),snap=>{
     plants=snap.docs.map(d=>({id:d.id,...d.data()}));
     setBadge("🟢 En ligne",false); hideLoading(); render();
+    if(curTab==="calendar") renderCalendar();
+    if(curTab==="stats") renderStats();
   },()=>fallback());
 }
 function fallback(){
@@ -345,7 +437,7 @@ function render(){
   }).join("");
 }
 window.setFilter=f=>{curFilter=f;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===f));render();};
-window.waterPlant=async id=>{const p=plants.find(x=>x.id===id);if(!p)return;p.lastWatered=new Date().toISOString();await fbSet(p);showToast(`${p.emoji} ${p.name} arrosé !`);};
+window.waterPlant=async id=>{const p=plants.find(x=>x.id===id);if(!p)return;const now=new Date().toISOString();p.lastWatered=now;p.history=[...(p.history||[]),now].slice(-60);await fbSet(p);showToast(`${p.emoji} ${p.name} arrosé !`);if(curTab==="calendar")renderCalendar();if(curTab==="stats")renderStats();};
 window.deletePlant=async id=>{const p=plants.find(x=>x.id===id);if(!p||!confirm(`Supprimer « ${p.name} » ?`))return;plants=plants.filter(x=>x.id!==id);await fbDel(id);showToast("Plante supprimée");};
 function buildEmojis(){document.getElementById("emoji-grid").innerHTML=EMOJIS.map(e=>`<button class="emoji-btn${e===selEmoji?" selected":""}" onclick="selE('${e}')">${e}</button>`).join("");}
 function buildFreqs(){document.getElementById("freq-grid").innerHTML=FREQS.map(f=>`<button class="freq-btn${f.days===selDays?" selected":""}" onclick="selF(${f.days})">${f.label}</button>`).join("");}
@@ -386,6 +478,244 @@ async function sendTestNotif(){
   }catch(e){
     showToast("❌ Erreur serveur: "+e.message);
   }
+}
+
+// ── ONGLETS ───────────────────────────────────────────────────────────
+window.setTab=function(tab){
+  curTab=tab;
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  document.getElementById("view-plants").classList.toggle("active",tab==="plants");
+  document.getElementById("view-calendar").classList.toggle("active",tab==="calendar");
+  document.getElementById("view-stats").classList.toggle("active",tab==="stats");
+  document.getElementById("fab-wrap").style.display = tab==="plants" ? "block" : "none";
+  if(tab==="calendar") renderCalendar();
+  if(tab==="stats") renderStats();
+};
+
+// ── CALENDRIER ────────────────────────────────────────────────────────
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+
+function getWateredDatesForPlant(p){
+  const dates=[];
+  if(p.history && p.history.length){
+    p.history.forEach(h=>dates.push(new Date(h)));
+  } else if(p.lastWatered){
+    dates.push(new Date(p.lastWatered.toDate?p.lastWatered.toDate():p.lastWatered));
+  }
+  return dates;
+}
+
+function getDueDatesForPlant(p, rangeStart, rangeEnd){
+  // Calcule toutes les échéances prévues entre rangeStart et rangeEnd
+  // en se basant sur lastWatered + frequency, en cascade
+  const due=[];
+  if(!p.lastWatered) return due;
+  let base = p.lastWatered.toDate?p.lastWatered.toDate():new Date(p.lastWatered);
+  let next = new Date(base.getTime() + p.frequency*86400000);
+  // Reculer si besoin pour couvrir le début de la plage
+  while(next > rangeStart){
+    next = new Date(next.getTime() - p.frequency*86400000);
+  }
+  // Avancer et collecter toutes les échéances dans la plage
+  next = new Date(next.getTime() + p.frequency*86400000);
+  let guard=0;
+  while(next <= rangeEnd && guard<200){
+    if(next >= rangeStart) due.push(new Date(next));
+    next = new Date(next.getTime() + p.frequency*86400000);
+    guard++;
+  }
+  return due;
+}
+
+window.calNav=function(dir){
+  calDate.setMonth(calDate.getMonth()+dir);
+  renderCalendar();
+};
+
+function renderCalendar(){
+  const year=calDate.getFullYear(), month=calDate.getMonth();
+  const label=calDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  document.getElementById("cal-month-label").textContent=label;
+
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  const startWeekday=(firstDay.getDay()+6)%7; // lundi=0
+  const daysInMonth=lastDay.getDate();
+
+  const rangeStart=new Date(year,month,1,0,0,0);
+  const rangeEnd=new Date(year,month+1,0,23,59,59);
+
+  // Construire map jour -> {due:[], watered:[]}
+  const dayMap={};
+  for(let d=1; d<=daysInMonth; d++) dayMap[d]={due:[],watered:[]};
+
+  plants.forEach(p=>{
+    getWateredDatesForPlant(p).forEach(wd=>{
+      if(wd.getFullYear()===year && wd.getMonth()===month){
+        dayMap[wd.getDate()].watered.push(p);
+      }
+    });
+    getDueDatesForPlant(p,rangeStart,rangeEnd).forEach(dd=>{
+      if(dd.getFullYear()===year && dd.getMonth()===month){
+        dayMap[dd.getDate()].due.push(p);
+      }
+    });
+  });
+
+  const today=new Date();
+  let html="";
+  for(let i=0;i<startWeekday;i++) html+=`<div class="cal-day empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const info=dayMap[d];
+    const isToday=sameDay(new Date(year,month,d), today);
+    let dots="";
+    info.watered.slice(0,3).forEach(()=>dots+=`<div class="cal-dot watered"></div>`);
+    info.due.slice(0,3).forEach(()=>dots+=`<div class="cal-dot due"></div>`);
+    html+=`<div class="cal-day${isToday?' today':''}" onclick="showCalDay(${year},${month},${d})">
+      <div class="cal-day-num">${d}</div>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }
+  document.getElementById("cal-days").innerHTML=html;
+
+  // Afficher le détail du jour actuel par défaut
+  showCalDay(year,month, sameDay(calDate,today)||((year===today.getFullYear()&&month===today.getMonth()))?today.getDate():1);
+}
+
+window.showCalDay=function(year,month,day){
+  const target=new Date(year,month,day);
+  const watered=[], due=[];
+  plants.forEach(p=>{
+    getWateredDatesForPlant(p).forEach(wd=>{ if(sameDay(wd,target)) watered.push(p); });
+    getDueDatesForPlant(p, new Date(year,month,1), new Date(year,month+1,0,23,59,59)).forEach(dd=>{
+      if(sameDay(dd,target)) due.push(p);
+    });
+  });
+
+  const dateLabel=target.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+  let html=`<div class="cal-detail-title">${dateLabel}</div>`;
+
+  if(watered.length===0 && due.length===0){
+    html+=`<div class="stats-empty">Aucun événement ce jour-là</div>`;
+  } else {
+    watered.forEach(p=>{
+      html+=`<div class="cal-detail-card">
+        <div class="cal-detail-icon">${p.emoji}</div>
+        <div class="cal-detail-info"><div class="cal-detail-name">${esc(p.name)}</div><div class="cal-detail-sub">Arrosé ce jour</div></div>
+        <div class="cal-detail-badge" style="background:#3ab86a">💧</div>
+      </div>`;
+    });
+    due.forEach(p=>{
+      const alreadyWatered = watered.some(w=>w.id===p.id);
+      if(alreadyWatered) return;
+      html+=`<div class="cal-detail-card">
+        <div class="cal-detail-icon">${p.emoji}</div>
+        <div class="cal-detail-info"><div class="cal-detail-name">${esc(p.name)}</div><div class="cal-detail-sub">Arrosage prévu</div></div>
+        <div class="cal-detail-badge" style="background:#d4924a">⏰</div>
+      </div>`;
+    });
+  }
+  document.getElementById("cal-detail").innerHTML=html;
+};
+
+// ── STATISTIQUES ──────────────────────────────────────────────────────
+function renderStats(){
+  const el=document.getElementById("stats-content");
+  if(plants.length===0){
+    el.innerHTML=`<div class="stats-empty">🌱 Ajoute des plantes pour voir tes statistiques</div>`;
+    return;
+  }
+
+  // Total arrosages (basé sur l'historique réel disponible)
+  let totalWaterings=0;
+  plants.forEach(p=>{ totalWaterings += (p.history?p.history.length:(p.lastWatered?1:0)); });
+
+  // Plante la plus arrosée / la plus ancienne
+  let mostWatered=null, oldestPlant=null;
+  plants.forEach(p=>{
+    const count=p.history?p.history.length:(p.lastWatered?1:0);
+    if(!mostWatered || count>(mostWatered.count||0)) mostWatered={...p,count};
+    const created=p.createdAt?new Date(p.createdAt):new Date();
+    if(!oldestPlant || created<oldestPlant._created) oldestPlant={...p,_created:created};
+  });
+
+  // Ponctualité : compare dates d'arrosage réelles vs dates prévues théoriques
+  let onTimeCount=0, lateCount=0;
+  plants.forEach(p=>{
+    if(!p.history || p.history.length<2) return;
+    const sorted=[...p.history].sort();
+    for(let i=1;i<sorted.length;i++){
+      const gap=(new Date(sorted[i])-new Date(sorted[i-1]))/86400000;
+      if(gap <= p.frequency+1) onTimeCount++; else lateCount++;
+    }
+  });
+  const totalGaps=onTimeCount+lateCount;
+  const punctuality = totalGaps>0 ? Math.round((onTimeCount/totalGaps)*100) : null;
+
+  // Répartition par jour de la semaine
+  const dayNames=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  const dayCounts=[0,0,0,0,0,0,0];
+  plants.forEach(p=>{
+    (p.history||[]).forEach(h=>{ dayCounts[new Date(h).getDay()]++; });
+  });
+  const maxDayCount=Math.max(...dayCounts,1);
+
+  // Classement plantes par nombre d'arrosages
+  const ranked=plants.map(p=>({...p,count:p.history?p.history.length:(p.lastWatered?1:0)}))
+    .sort((a,b)=>b.count-a.count).slice(0,5);
+
+  let html=`
+    <div class="stats-hero">
+      <div class="stats-hero-num">${totalWaterings}</div>
+      <div class="stats-hero-label">Arrosages enregistrés</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stats-card">
+        <div class="stats-card-icon">🪴</div>
+        <div class="stats-card-val">${plants.length}</div>
+        <div class="stats-card-label">Plantes au total</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-icon">${punctuality===null?'❔':'🎯'}</div>
+        <div class="stats-card-val">${punctuality===null?'—':punctuality+'%'}</div>
+        <div class="stats-card-label">Ponctualité</div>
+      </div>
+    </div>
+  `;
+
+  if(oldestPlant){
+    const days=Math.floor((Date.now()-oldestPlant._created)/86400000);
+    html+=`
+    <div class="stats-section-title">🌳 Doyenne du jardin</div>
+    <div class="stats-rank-row">
+      <div class="stats-rank-icon">${oldestPlant.emoji}</div>
+      <div class="stats-rank-name">${esc(oldestPlant.name)}</div>
+      <div class="stats-rank-val">${days}j</div>
+    </div>`;
+  }
+
+  if(ranked.length){
+    html+=`<div class="stats-section-title">💧 Classement arrosages</div>`;
+    ranked.forEach((p,i)=>{
+      const medal=["🥇","🥈","🥉","",""][i]||"";
+      html+=`<div class="stats-rank-row">
+        <div class="stats-rank-icon">${medal||p.emoji}</div>
+        <div class="stats-rank-name">${esc(p.name)}</div>
+        <div class="stats-rank-val">${p.count} fois</div>
+      </div>`;
+    });
+  }
+
+  html+=`<div class="stats-section-title">📅 Arrosages par jour</div>`;
+  [1,2,3,4,5,6,0].forEach(idx=>{
+    const pct=Math.round((dayCounts[idx]/maxDayCount)*100);
+    html+=`<div class="stats-bar-row">
+      <div class="stats-bar-label"><span>${dayNames[idx]}</span><span>${dayCounts[idx]}</span></div>
+      <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+
+  el.innerHTML=html;
 }
 
 const mf={name:"Florea",short_name:"Florea",start_url:"./",display:"standalone",background_color:"#1a3328",theme_color:"#1a3328",icons:[{src:"icon.png",sizes:"192x192",type:"image/png"},{src:"icon.png",sizes:"512x512",type:"image/png"}]};
