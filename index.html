@@ -112,8 +112,8 @@ input:focus{border-color:var(--mint)}
 .cal-grid{padding:0 20px}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
 .cal-weekday{text-align:center;font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase}
-.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal-day{height:44px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-mid);position:relative;background:rgba(28,51,40,0.03);cursor:pointer}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:44px;gap:4px}
+.cal-day{height:44px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-mid);position:relative;background:rgba(28,51,40,0.03);cursor:pointer;box-sizing:border-box}
 .cal-day.empty{background:transparent;cursor:default}
 .cal-day.today{border:1.5px solid var(--forest)}
 .cal-day-num{font-weight:600}
@@ -154,11 +154,73 @@ input:focus{border-color:var(--mint)}
 .stats-bar-track{height:8px;background:var(--cream-dark);border-radius:99px;overflow:hidden}
 .stats-bar-fill{height:100%;background:var(--mint);border-radius:99px}
 .stats-empty{text-align:center;padding:40px 20px;color:var(--text-light);font-size:13px}
+
+/* LOGIN / GARDEN SCREEN */
+.login-screen{position:fixed;inset:0;background:var(--cream);display:flex;flex-direction:column;z-index:600;overflow-y:auto}
+.login-inner{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 28px;max-width:440px;margin:0 auto;width:100%}
+.login-logo{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;display:block}
+.login-title{font-family:Georgia,serif;font-size:26px;color:var(--forest);text-align:center;margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--text-mid);text-align:center;margin-bottom:32px}
+.login-mode-switch{display:flex;background:rgba(28,51,40,0.06);border-radius:14px;padding:4px;margin-bottom:24px}
+.login-mode-btn{flex:1;padding:10px;border:none;background:transparent;border-radius:11px;font-size:13px;font-weight:700;color:var(--text-mid);cursor:pointer}
+.login-mode-btn.active{background:var(--forest);color:#fff}
+.login-field{margin-bottom:16px}
+.login-label{display:block;font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.login-input{width:100%;padding:14px 16px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:16px;color:var(--text);outline:none;font-family:inherit}
+.login-input:focus{border-color:var(--mint)}
+.login-btn{width:100%;padding:15px;background:var(--mint);color:#fff;border:none;border-radius:14px;font-weight:800;font-size:16px;cursor:pointer;margin-top:8px}
+.login-btn:disabled{background:#b0c8b8;cursor:not-allowed}
+.login-error{background:rgba(192,96,64,0.1);border:1px solid rgba(192,96,64,0.3);color:#c06040;font-size:13px;padding:10px 14px;border-radius:12px;margin-bottom:16px;display:none}
+.login-error.show{display:block}
+.login-note{font-size:12px;color:var(--text-light);text-align:center;margin-top:20px;line-height:1.6}
+.reset-link{color:var(--mint);font-weight:700;text-decoration:none;cursor:pointer}
+.login-result-box{background:rgba(58,184,106,0.1);border:1.5px solid rgba(58,184,106,0.3);border-radius:14px;padding:16px;margin-top:16px;text-align:center}
+.login-result-pass{font-size:20px;font-weight:800;letter-spacing:2px;color:var(--forest);margin:8px 0;font-family:monospace}
 </style>
 </head>
 <body>
 
-<div class="loading-screen" id="loading-screen">
+<div class="login-screen" id="login-screen">
+  <div class="login-inner">
+    <img class="login-logo" src="icon.png" alt="Florea">
+    <div class="login-title">Florea</div>
+    <div class="login-sub">Accède à ton jardin partagé</div>
+
+    <div class="login-mode-switch">
+      <button class="login-mode-btn active" id="mode-join" onclick="setLoginMode('join')">Rejoindre</button>
+      <button class="login-mode-btn" id="mode-create" onclick="setLoginMode('create')">Créer un jardin</button>
+    </div>
+
+    <div class="login-error" id="login-error"></div>
+
+    <div class="login-field">
+      <label class="login-label">Nom du jardin</label>
+      <input type="text" class="login-input" id="login-garden-name" placeholder="ex : Florea, Jardin de Tom…" autocapitalize="words">
+    </div>
+    <div class="login-field">
+      <label class="login-label">Mot de passe</label>
+      <input type="password" class="login-input" id="login-password" placeholder="8 caractères minimum">
+    </div>
+
+    <button class="login-btn" id="login-submit" onclick="submitLogin()">Rejoindre le jardin</button>
+
+    <div class="login-note">
+      Mot de passe oublié ? <span class="reset-link" onclick="showResetHelp()">Comment faire</span>
+    </div>
+
+    <div id="login-reset-box" style="display:none" class="login-result-box">
+      Demande à la personne qui a créé le jardin de t'envoyer à nouveau le nom + mot de passe. Pour des raisons de sécurité, Florea ne peut pas les récupérer automatiquement.
+    </div>
+
+    <div id="login-create-result" style="display:none" class="login-result-box">
+      <div style="font-size:13px;color:var(--text-mid)">Jardin créé ! Partage ces infos avec tes proches :</div>
+      <div class="login-result-pass" id="created-garden-info"></div>
+      <div style="font-size:12px;color:var(--text-light)">Garde-les précieusement, ils ne seront plus réaffichés.</div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-screen" id="loading-screen" style="display:none">
   <img class="loading-logo" src="icon.png" alt="Florea">
   <div class="loading-name">Florea</div>
   <div class="loading-sub">Connexion…</div>
@@ -168,7 +230,7 @@ input:focus{border-color:var(--mint)}
   <div class="header-top">
     <img class="header-logo" src="icon.png" alt="Florea" onclick="handleLogoTap()" style="cursor:pointer">
     <div class="header-titles">
-      <div class="header-app">Florea</div>
+      <div class="header-app" id="header-garden-name" onclick="switchGarden()" style="cursor:pointer" title="Toucher pour changer de jardin">Florea</div>
       <div class="header-title">Mon Jardin 🌿</div>
     </div>
     <div class="header-actions">
@@ -258,11 +320,25 @@ input:focus{border-color:var(--mint)}
   </div>
 </div>
 
+<div class="overlay" id="retro-overlay" onclick="handleRetroOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🕒 Arrosage rétroactif</span>
+      <button class="modal-close" onclick="closeRetroWater()">✕</button>
+    </div>
+    <div class="field">
+      <label class="label">Date et heure de l'arrosage</label>
+      <input type="datetime-local" id="retro-datetime" class="login-input" style="font-size:15px">
+    </div>
+    <button class="btn-submit" onclick="confirmRetroWater()">Enregistrer cet arrosage 💧</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp }
+import { getFirestore, collection, getDocs, onSnapshot, doc, getDoc, setDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const VAPID_PUBLIC = "BAEKkf7vrIX9U7u91o5TWITF2r1_BMg1Z3MQLDEIOKViSSfgh0IK3OrCsEBbOkpD11ZtnSLb76ZXjIhfcxxZpZg";
@@ -283,13 +359,29 @@ const FREQS=[{label:"Quotidien",days:1},{label:"2 jours",days:2},{label:"3 jours
 let plants=[],db=null,unsub=null,swReg=null,pushSub=null;
 let curTab="plants",calDate=new Date();
 let curFilter="all",editId=null,selEmoji=EMOJIS[0],selDays=7;
+let gardenId=null, gardenName=null, loginMode="join";
 
-// ── INIT ──────────────────────────────────────────────────────────────
+// ── HASH UTIL (SHA-256 → hex, via Web Crypto natif) ─────────────────────
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function genPassword(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let out='';
+  const arr=new Uint8Array(10);
+  crypto.getRandomValues(arr);
+  arr.forEach(b=>out+=chars[b%chars.length]);
+  return out;
+}
+
+// ── INIT FIREBASE (toujours, même avant connexion) ──────────────────────
+let firebaseApp=null;
 try {
-  const app=initializeApp(firebaseConfig);
-  db=getFirestore(app);
-  listenPlants();
-} catch(e){console.error(e);fallback();}
+  firebaseApp=initializeApp(firebaseConfig);
+  db=getFirestore(firebaseApp);
+} catch(e){ console.error(e); }
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js')
@@ -299,9 +391,123 @@ if('serviceWorker' in navigator){
   window.__swError = 'Service Worker non supporté';
 }
 
+// ── ÉCRAN DE CONNEXION ────────────────────────────────────────────────
+window.setLoginMode=function(mode){
+  loginMode=mode;
+  document.getElementById('mode-join').classList.toggle('active',mode==='join');
+  document.getElementById('mode-create').classList.toggle('active',mode==='create');
+  document.getElementById('login-submit').textContent = mode==='join' ? 'Rejoindre le jardin' : 'Créer le jardin';
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('login-create-result').style.display='none';
+};
+
+window.showResetHelp=function(){
+  document.getElementById('login-reset-box').style.display='block';
+};
+
+function showLoginError(msg){
+  const el=document.getElementById('login-error');
+  el.textContent=msg;
+  el.classList.add('show');
+}
+
+window.submitLogin=async function(){
+  const name=document.getElementById('login-garden-name').value.trim();
+  const pass=document.getElementById('login-password').value;
+  document.getElementById('login-error').classList.remove('show');
+
+  if(!name || name.length<2){ showLoginError("Donne un nom de jardin (2 caractères min)"); return; }
+  if(!pass || pass.length<6){ showLoginError("Mot de passe trop court (6 caractères min)"); return; }
+
+  const btn=document.getElementById('login-submit');
+  btn.disabled=true; btn.textContent="…";
+
+  try{
+    const id = await sha256(name.toLowerCase().trim()+"::"+pass);
+    const meta = await getDoc(doc(db,"gardens",id));
+
+    if(loginMode==='create'){
+      if(meta.exists()){
+        showLoginError("Ce nom de jardin existe déjà avec ce mot de passe — utilise Rejoindre, ou choisis un autre nom.");
+        btn.disabled=false; btn.textContent="Créer le jardin";
+        return;
+      }
+      await setDoc(doc(db,"gardens",id), { name, createdAt: serverTimestamp() });
+      await migrateOldPlants(id);
+      document.getElementById('created-garden-info').innerHTML = `${esc(name)}<br><span style="font-size:15px">${esc(pass)}</span>`;
+      document.getElementById('login-create-result').style.display='block';
+      btn.disabled=false; btn.textContent="Créer le jardin";
+      saveGardenSession(id,name);
+      setTimeout(()=>enterGarden(id,name), 1800);
+      return;
+    } else {
+      if(!meta.exists()){
+        showLoginError("Jardin introuvable — vérifie le nom et le mot de passe, ou crée un nouveau jardin.");
+        btn.disabled=false; btn.textContent="Rejoindre le jardin";
+        return;
+      }
+      saveGardenSession(id,name);
+      enterGarden(id,name);
+    }
+  }catch(e){
+    console.error(e);
+    showLoginError("Erreur de connexion — réessaie.");
+    btn.disabled=false; btn.textContent= loginMode==='join'?"Rejoindre le jardin":"Créer le jardin";
+  }
+};
+
+function saveGardenSession(id,name){
+  localStorage.setItem('florea_garden_id', id);
+  localStorage.setItem('florea_garden_name', name);
+}
+
+async function migrateOldPlants(newGardenId){
+  // Copie les anciennes plantes (collection racine "plants") vers le nouveau jardin, une seule fois
+  if(localStorage.getItem('florea_migrated')) return;
+  try{
+    const oldSnap = await getDocs(collection(db,"plants"));
+    if(!oldSnap.empty){
+      for(const d of oldSnap.docs){
+        await setDoc(doc(db,"gardens",newGardenId,"plants",d.id), d.data());
+      }
+      showToast(`🌿 ${oldSnap.size} plante(s) migrée(s) dans ton jardin !`);
+    }
+    localStorage.setItem('florea_migrated','1');
+  }catch(e){
+    console.log('Migration skip:', e.message);
+  }
+}
+
+function enterGarden(id,name){
+  gardenId=id; gardenName=name;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  document.getElementById('header-garden-name').textContent = name;
+  listenPlants();
+}
+
+window.switchGarden=function(){
+  if(!confirm("Quitter ce jardin et se connecter à un autre ?")) return;
+  localStorage.removeItem('florea_garden_id');
+  localStorage.removeItem('florea_garden_name');
+  location.reload();
+};
+
+// ── AUTO-LOGIN SI SESSION EXISTANTE ──────────────────────────────────────
+(function tryAutoLogin(){
+  const savedId=localStorage.getItem('florea_garden_id');
+  const savedName=localStorage.getItem('florea_garden_name');
+  if(savedId && savedName){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('loading-screen').style.display='flex';
+    enterGarden(savedId, savedName);
+  }
+})();
+
 function listenPlants(){
   if(unsub) unsub();
-  unsub=onSnapshot(collection(db,"plants"),snap=>{
+  if(!gardenId){ fallback(); return; }
+  unsub=onSnapshot(collection(db,"gardens",gardenId,"plants"),snap=>{
     plants=snap.docs.map(d=>({id:d.id,...d.data()}));
     setBadge("🟢 En ligne",false); hideLoading(); render();
     if(curTab==="calendar") renderCalendar();
@@ -309,7 +515,7 @@ function listenPlants(){
   },()=>fallback());
 }
 function fallback(){
-  try{plants=JSON.parse(localStorage.getItem("florea_local"))||[];}catch{plants=[];}
+  try{plants=JSON.parse(localStorage.getItem("florea_local_"+(gardenId||"default")))||[];}catch{plants=[];}
   setBadge("📴 Local",true); hideLoading(); render();
 }
 function hideLoading(){
@@ -385,13 +591,13 @@ function b64ToUint8(b64){
 
 // ── CRUD ──────────────────────────────────────────────────────────────
 async function fbSet(p){
-  if(!db){localStorage.setItem("florea_local",JSON.stringify(plants));render();return;}
+  if(!db||!gardenId){localStorage.setItem("florea_local_"+(gardenId||"default"),JSON.stringify(plants));render();return;}
   const{id,...data}=p;
-  await setDoc(doc(db,"plants",id),{...data,_upd:serverTimestamp()});
+  await setDoc(doc(db,"gardens",gardenId,"plants",id),{...data,_upd:serverTimestamp()});
 }
 async function fbDel(id){
-  if(!db){localStorage.setItem("florea_local",JSON.stringify(plants));render();return;}
-  await deleteDoc(doc(db,"plants",id));
+  if(!db||!gardenId){localStorage.setItem("florea_local_"+(gardenId||"default"),JSON.stringify(plants));render();return;}
+  await deleteDoc(doc(db,"gardens",gardenId,"plants",id));
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────
@@ -433,11 +639,49 @@ function render(){
     const pct=d===null?0:Math.max(0,Math.min(100,(d/p.frequency)*100));
     const bar=s==="urgent"?"#c06040":s==="soon"?"#d4924a":s==="ok"?"#80c090":"#3ab86a";
     const bdg=s==="urgent"?"⚠️ À arroser !":s==="unknown"?"Jamais arrosé":s==="soon"?"Demain":`Dans ${d}j`;
-    return`<div class="card ${s}"><div class="card-top"><div class="plant-icon">${p.emoji}</div><div class="card-info"><div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div><div class="card-freq">💧 ${freqLabel(p.frequency)}</div><div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div><div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div></div></div><div class="card-actions"><button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button><button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button><button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button></div></div>`;
+    return`<div class="card ${s}"><div class="card-top"><div class="plant-icon">${p.emoji}</div><div class="card-info"><div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div><div class="card-freq">💧 ${freqLabel(p.frequency)}</div><div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div><div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div></div></div><div class="card-actions"><button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button><button class="btn-icon btn-edit" onclick="openRetroWater('${p.id}')" title="Arrosé un autre jour">🕒</button><button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button><button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button></div></div>`;
   }).join("");
 }
 window.setFilter=f=>{curFilter=f;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===f));render();};
 window.waterPlant=async id=>{const p=plants.find(x=>x.id===id);if(!p)return;const now=new Date().toISOString();p.lastWatered=now;p.history=[...(p.history||[]),now].slice(-60);await fbSet(p);showToast(`${p.emoji} ${p.name} arrosé !`);if(curTab==="calendar")renderCalendar();if(curTab==="stats")renderStats();};
+
+// ── ARROSAGE RÉTROACTIF ──────────────────────────────────────────────
+let retroPlantId=null;
+window.openRetroWater=function(id){
+  retroPlantId=id;
+  const now=new Date();
+  now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('retro-datetime').value=now.toISOString().slice(0,16);
+  document.getElementById('retro-overlay').classList.add('open');
+};
+window.closeRetroWater=function(){
+  document.getElementById('retro-overlay').classList.remove('open');
+  retroPlantId=null;
+};
+window.handleRetroOverlayClick=function(e){
+  if(e.target===document.getElementById('retro-overlay')) window.closeRetroWater();
+};
+window.confirmRetroWater=async function(){
+  const p=plants.find(x=>x.id===retroPlantId);
+  if(!p) return;
+  const val=document.getElementById('retro-datetime').value;
+  if(!val){ showToast("Choisis une date"); return; }
+  const chosen=new Date(val);
+  if(chosen > new Date()){ showToast("La date ne peut pas être dans le futur"); return; }
+
+  const iso=chosen.toISOString();
+  // On met à jour lastWatered seulement si cette date est plus récente que l'actuelle
+  const curLast=p.lastWatered ? new Date(p.lastWatered.toDate?p.lastWatered.toDate():p.lastWatered) : null;
+  if(!curLast || chosen > curLast){
+    p.lastWatered = iso;
+  }
+  p.history=[...(p.history||[]), iso].sort().slice(-60);
+  await fbSet(p);
+  window.closeRetroWater();
+  showToast(`${p.emoji} ${p.name} — arrosage enregistré ✓`);
+  if(curTab==="calendar") renderCalendar();
+  if(curTab==="stats") renderStats();
+};
 window.deletePlant=async id=>{const p=plants.find(x=>x.id===id);if(!p||!confirm(`Supprimer « ${p.name} » ?`))return;plants=plants.filter(x=>x.id!==id);await fbDel(id);showToast("Plante supprimée");};
 function buildEmojis(){document.getElementById("emoji-grid").innerHTML=EMOJIS.map(e=>`<button class="emoji-btn${e===selEmoji?" selected":""}" onclick="selE('${e}')">${e}</button>`).join("");}
 function buildFreqs(){document.getElementById("freq-grid").innerHTML=FREQS.map(f=>`<button class="freq-btn${f.days===selDays?" selected":""}" onclick="selF(${f.days})">${f.label}</button>`).join("");}
