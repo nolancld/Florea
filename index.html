@@ -316,6 +316,16 @@ input:focus{border-color:var(--mint)}
         <span>jours</span>
       </div>
     </div>
+    <div class="field">
+      <label class="label">Quantité d'eau 💧 <span style="font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="f-water-qty" min="1" max="10000" placeholder="ex : 200" style="flex:1">
+        <div style="display:flex;gap:6px">
+          <button id="f-unit-ml" onclick="setWaterUnit('ml')" style="padding:10px 14px;border-radius:11px;border:1.5px solid #d0c8b8;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:var(--text-mid)">mL</button>
+          <button id="f-unit-l" onclick="setWaterUnit('l')" style="padding:10px 14px;border-radius:11px;border:1.5px solid #d0c8b8;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:var(--text-mid)">L</button>
+        </div>
+      </div>
+    </div>
     <button class="btn-submit" id="btn-submit" disabled onclick="submitForm()">Ajouter la plante 🌱</button>
   </div>
 </div>
@@ -358,7 +368,7 @@ const FREQS=[{label:"Quotidien",days:1},{label:"2 jours",days:2},{label:"3 jours
 
 let plants=[],db=null,unsub=null,swReg=null,pushSub=null;
 let curTab="plants",calDate=new Date();
-let curFilter="all",editId=null,selEmoji=EMOJIS[0],selDays=7;
+let curFilter="all",editId=null,selEmoji=EMOJIS[0],selDays=7,selUnit="ml";
 let gardenId=null, gardenName=null, loginMode="join";
 
 // ── HASH UTIL (SHA-256 → hex, via Web Crypto natif) ─────────────────────
@@ -531,7 +541,17 @@ function setBadge(txt,off){
 async function checkExistingSub(){
   if(!swReg) return;
   pushSub=await swReg.pushManager.getSubscription().catch(()=>null);
-  if(pushSub) document.getElementById('notif-btn').classList.add('active');
+  if(pushSub){
+    document.getElementById('notif-btn').classList.add('active');
+    // Re-enregistrer avec le gardenId au cas où c'est une ancienne sub sans gardenId
+    if(gardenId && SERVER_URL){
+      fetch(SERVER_URL+'/subscribe',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({subscription:pushSub, gardenId})
+      }).catch(()=>{});
+    }
+  }
 }
 
 window.toggleNotif=async function(){
@@ -551,9 +571,8 @@ window.toggleNotif=async function(){
   }
 
   if(pushSub){
-    // Désactiver
     await pushSub.unsubscribe();
-    try{ await fetch(SERVER_URL+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:pushSub})})}catch{}
+    try{ await fetch(SERVER_URL+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:pushSub, gardenId})})}catch{}
     pushSub=null;
     document.getElementById('notif-btn').classList.remove('active');
     showToast("🔕 Notifications désactivées");
@@ -571,7 +590,7 @@ window.toggleNotif=async function(){
     await fetch(SERVER_URL+'/subscribe',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subscription:pushSub})
+      body:JSON.stringify({subscription:pushSub, gardenId})
     });
     document.getElementById('notif-btn').classList.add('active');
     showToast("🔔 Notifications activées !");
@@ -639,7 +658,8 @@ function render(){
     const pct=d===null?0:Math.max(0,Math.min(100,(d/p.frequency)*100));
     const bar=s==="urgent"?"#c06040":s==="soon"?"#d4924a":s==="ok"?"#80c090":"#3ab86a";
     const bdg=s==="urgent"?"⚠️ À arroser !":s==="unknown"?"Jamais arrosé":s==="soon"?"Demain":`Dans ${d}j`;
-    return`<div class="card ${s}"><div class="card-top"><div class="plant-icon">${p.emoji}</div><div class="card-info"><div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div><div class="card-freq">💧 ${freqLabel(p.frequency)}</div><div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div><div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div></div></div><div class="card-actions"><button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button><button class="btn-icon btn-edit" onclick="openRetroWater('${p.id}')" title="Arrosé un autre jour">🕒</button><button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button><button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button></div></div>`;
+    const qtyLabel = p.waterQty ? ` · ${p.waterQty}${p.waterUnit||'ml'}` : '';
+    return`<div class="card ${s}"><div class="card-top"><div class="plant-icon">${p.emoji}</div><div class="card-info"><div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div><div class="card-freq">💧 ${freqLabel(p.frequency)}${qtyLabel}</div><div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div><div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div></div></div><div class="card-actions"><button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button><button class="btn-icon btn-edit" onclick="openRetroWater('${p.id}')" title="Arrosé un autre jour">🕒</button><button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button><button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button></div></div>`;
   }).join("");
 }
 window.setFilter=f=>{curFilter=f;document.querySelectorAll(".filter-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===f));render();};
@@ -670,12 +690,17 @@ window.confirmRetroWater=async function(){
   if(chosen > new Date()){ showToast("La date ne peut pas être dans le futur"); return; }
 
   const iso=chosen.toISOString();
-  // On met à jour lastWatered seulement si cette date est plus récente que l'actuelle
-  const curLast=p.lastWatered ? new Date(p.lastWatered.toDate?p.lastWatered.toDate():p.lastWatered) : null;
-  if(!curLast || chosen > curLast){
-    p.lastWatered = iso;
-  }
-  p.history=[...(p.history||[]), iso].sort().slice(-60);
+  const chosenDay=iso.slice(0,10); // YYYY-MM-DD
+
+  // Supprimer tout arrosage existant le même jour pour cette plante (évite les doublons)
+  const history=[...(p.history||[])].filter(h=>h.slice(0,10)!==chosenDay);
+  history.push(iso);
+  history.sort();
+
+  // lastWatered = toujours le plus récent de l'historique
+  p.lastWatered = history[history.length-1];
+  p.history = history.slice(-60);
+
   await fbSet(p);
   window.closeRetroWater();
   showToast(`${p.emoji} ${p.name} — arrosage enregistré ✓`);
@@ -690,11 +715,68 @@ window.onCustomEmoji=v=>{const c=[...v.trim()];if(c.length){selEmoji=c[0];docume
 window.selF=d=>{selDays=d;document.getElementById("f-custom-days").value="";buildFreqs();};
 window.onCustomFreq=v=>{const n=parseInt(v);if(n>=1&&n<=365){selDays=n;document.querySelectorAll(".freq-btn").forEach(b=>b.classList.remove("selected"));}};
 window.checkForm=()=>{document.getElementById("btn-submit").disabled=!document.getElementById("f-name").value.trim();};
-window.openAdd=()=>{editId=null;selEmoji=EMOJIS[0];selDays=7;document.getElementById("modal-title").textContent="Nouvelle plante";document.getElementById("btn-submit").textContent="Ajouter la plante 🌱";document.getElementById("f-name").value="";document.getElementById("f-custom-emoji").value="";document.getElementById("f-custom-days").value="";document.getElementById("btn-submit").disabled=true;buildEmojis();buildFreqs();document.getElementById("modal-overlay").classList.add("open");};
-window.openEdit=id=>{const p=plants.find(x=>x.id===id);if(!p)return;editId=id;selEmoji=p.emoji;selDays=p.frequency;document.getElementById("modal-title").textContent="Modifier la plante";document.getElementById("btn-submit").textContent="Enregistrer ✓";document.getElementById("f-name").value=p.name;document.getElementById("f-custom-emoji").value="";document.getElementById("f-custom-days").value="";document.getElementById("btn-submit").disabled=false;buildEmojis();buildFreqs();document.getElementById("modal-overlay").classList.add("open");};
+window.setWaterUnit=function(unit){
+  selUnit=unit;
+  const ml=document.getElementById('f-unit-ml');
+  const l=document.getElementById('f-unit-l');
+  [ml,l].forEach(b=>{ b.style.background='#fff'; b.style.borderColor='#d0c8b8'; b.style.color='var(--text-mid)'; });
+  const active=unit==='ml'?ml:l;
+  active.style.background='var(--mint-light)'; active.style.borderColor='var(--mint)'; active.style.color='var(--forest)';
+};
+window.openAdd=()=>{
+  editId=null;selEmoji=EMOJIS[0];selDays=7;selUnit='ml';
+  document.getElementById("modal-title").textContent="Nouvelle plante";
+  document.getElementById("btn-submit").textContent="Ajouter la plante 🌱";
+  document.getElementById("f-name").value="";
+  document.getElementById("f-custom-emoji").value="";
+  document.getElementById("f-custom-days").value="";
+  document.getElementById("f-water-qty").value="";
+  window.setWaterUnit('ml');
+  document.getElementById("btn-submit").disabled=true;
+  buildEmojis();buildFreqs();
+  document.getElementById("modal-overlay").classList.add("open");
+};
+window.openEdit=id=>{
+  const p=plants.find(x=>x.id===id);if(!p)return;
+  editId=id;selEmoji=p.emoji;selDays=p.frequency;
+  selUnit=p.waterUnit||'ml';
+  document.getElementById("modal-title").textContent="Modifier la plante";
+  document.getElementById("btn-submit").textContent="Enregistrer ✓";
+  document.getElementById("f-name").value=p.name;
+  document.getElementById("f-custom-emoji").value="";
+  document.getElementById("f-custom-days").value="";
+  document.getElementById("f-water-qty").value=p.waterQty||"";
+  window.setWaterUnit(selUnit);
+  document.getElementById("btn-submit").disabled=false;
+  buildEmojis();buildFreqs();
+  document.getElementById("modal-overlay").classList.add("open");
+};
+window.submitForm=async()=>{
+  const name=document.getElementById("f-name").value.trim();if(!name)return;
+  const cd=parseInt(document.getElementById("f-custom-days").value);
+  if(!isNaN(cd)&&cd>=1)selDays=cd;
+  const ce=[...document.getElementById("f-custom-emoji").value.trim()];
+  if(ce.length)selEmoji=ce[0];
+  const qtyRaw=parseInt(document.getElementById("f-water-qty").value);
+  const waterQty=(!isNaN(qtyRaw)&&qtyRaw>0)?qtyRaw:null;
+  const waterUnit=waterQty?selUnit:null;
+  const ex=editId?plants.find(x=>x.id===editId):null;
+  const plant={
+    id:editId||Date.now().toString(),
+    name,emoji:selEmoji,frequency:selDays,
+    waterQty,waterUnit,
+    lastWatered:ex?.lastWatered||null,
+    history:ex?.history||[],
+    createdAt:ex?.createdAt||new Date().toISOString()
+  };
+  if(!editId)plants.push(plant);
+  else{const i=plants.findIndex(x=>x.id===editId);if(i>-1)plants[i]=plant;}
+  await fbSet(plant);
+  window.closeModal();
+  showToast(editId?"Plante modifiée ✓":`${selEmoji} ${name} ajouté !`);
+};
 window.closeModal=()=>document.getElementById("modal-overlay").classList.remove("open");
 window.handleOverlayClick=e=>{if(e.target===document.getElementById("modal-overlay"))window.closeModal();};
-window.submitForm=async()=>{const name=document.getElementById("f-name").value.trim();if(!name)return;const cd=parseInt(document.getElementById("f-custom-days").value);if(!isNaN(cd)&&cd>=1)selDays=cd;const ce=[...document.getElementById("f-custom-emoji").value.trim()];if(ce.length)selEmoji=ce[0];const ex=editId?plants.find(x=>x.id===editId):null;const plant={id:editId||Date.now().toString(),name,emoji:selEmoji,frequency:selDays,lastWatered:ex?.lastWatered||null,createdAt:ex?.createdAt||new Date().toISOString()};if(!editId)plants.push(plant);else{const i=plants.findIndex(x=>x.id===editId);if(i>-1)plants[i]=plant;}await fbSet(plant);window.closeModal();showToast(editId?"Plante modifiée ✓":`${selEmoji} ${name} ajouté !`);};
 let tt;
 window.showToast=msg=>{const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2500);};
 
@@ -712,7 +794,11 @@ window.handleLogoTap=function(){
 async function sendTestNotif(){
   showToast("🧪 Envoi de la notif test...");
   try{
-    const res = await fetch(SERVER_URL+'/test-notif', { method:'POST' });
+    const res = await fetch(SERVER_URL+'/test-notif', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({gardenId})
+    });
     const data = await res.json();
     if(data.ok){
       showToast(`✅ Test envoyé à ${data.sent}/${data.total} appareil(s)`);
@@ -830,7 +916,9 @@ window.showCalDay=function(year,month,day){
   const target=new Date(year,month,day);
   const watered=[], due=[];
   plants.forEach(p=>{
-    getWateredDatesForPlant(p).forEach(wd=>{ if(sameDay(wd,target)) watered.push(p); });
+    // On cherche l'entrée exacte dans l'historique pour pouvoir la supprimer
+    const entries=(p.history||[]).filter(h=>sameDay(new Date(h),target));
+    if(entries.length) watered.push({plant:p, entries});
     getDueDatesForPlant(p, new Date(year,month,1), new Date(year,month+1,0,23,59,59)).forEach(dd=>{
       if(sameDay(dd,target)) due.push(p);
     });
@@ -842,15 +930,17 @@ window.showCalDay=function(year,month,day){
   if(watered.length===0 && due.length===0){
     html+=`<div class="stats-empty">Aucun événement ce jour-là</div>`;
   } else {
-    watered.forEach(p=>{
+    watered.forEach(({plant:p, entries})=>{
+      const entryIso=entries[0]; // 1 seul par jour maintenant
+      const hhmm=new Date(entryIso).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
       html+=`<div class="cal-detail-card">
         <div class="cal-detail-icon">${p.emoji}</div>
-        <div class="cal-detail-info"><div class="cal-detail-name">${esc(p.name)}</div><div class="cal-detail-sub">Arrosé ce jour</div></div>
-        <div class="cal-detail-badge" style="background:#3ab86a">💧</div>
+        <div class="cal-detail-info"><div class="cal-detail-name">${esc(p.name)}</div><div class="cal-detail-sub">Arrosé à ${hhmm}</div></div>
+        <button onclick="deleteWateringEntry('${p.id}','${entryIso}')" style="background:rgba(192,96,64,0.12);color:#c06040;border:none;border-radius:10px;padding:6px 10px;font-size:15px;cursor:pointer">🗑️</button>
       </div>`;
     });
     due.forEach(p=>{
-      const alreadyWatered = watered.some(w=>w.id===p.id);
+      const alreadyWatered = watered.some(w=>w.plant.id===p.id);
       if(alreadyWatered) return;
       html+=`<div class="cal-detail-card">
         <div class="cal-detail-icon">${p.emoji}</div>
@@ -860,6 +950,18 @@ window.showCalDay=function(year,month,day){
     });
   }
   document.getElementById("cal-detail").innerHTML=html;
+};
+
+window.deleteWateringEntry=async function(plantId, isoDate){
+  const p=plants.find(x=>x.id===plantId);
+  if(!p||!confirm("Supprimer cet arrosage de l'historique ?")) return;
+  p.history=(p.history||[]).filter(h=>h!==isoDate);
+  // Recalculer lastWatered = dernier de l'historique restant
+  p.lastWatered = p.history.length ? p.history[p.history.length-1] : null;
+  await fbSet(p);
+  showToast("Arrosage supprimé");
+  renderCalendar();
+  if(curTab==="stats") renderStats();
 };
 
 // ── STATISTIQUES ──────────────────────────────────────────────────────
