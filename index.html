@@ -62,12 +62,12 @@ body{background:var(--cream);font-family:-apple-system,'Helvetica Neue',Arial,sa
 .empty-icon{font-size:52px;margin-bottom:14px}
 .empty-title{font-family:Georgia,serif;font-size:20px;color:var(--text-mid);margin-bottom:6px}
 .empty-sub{font-size:14px}
-.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;padding:12px 20px 36px;background:linear-gradient(to top,var(--cream) 65%,transparent);pointer-events:none}
+.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;padding:12px 20px calc(36px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--cream) 65%,transparent);pointer-events:none;will-change:transform}
 .fab{width:100%;padding:16px;background:var(--mint);color:#fff;border:none;border-radius:16px;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 6px 24px rgba(58,184,106,0.4);pointer-events:all;transition:transform 0.15s}
 .fab:active{transform:scale(0.97)}
 .overlay{position:fixed;inset:0;background:rgba(26,51,40,0.55);backdrop-filter:blur(5px);display:flex;align-items:flex-end;z-index:200;opacity:0;pointer-events:none;transition:opacity 0.25s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--cream);border-radius:24px 24px 0 0;padding:24px 20px 48px;width:100%;max-height:90dvh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1)}
+.modal{background:var(--cream);border-radius:24px 24px 0 0;padding:24px 20px calc(48px + env(safe-area-inset-bottom));width:100%;max-height:90dvh;overflow-y:auto;transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1)}
 .overlay.open .modal{transform:translateY(0)}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
 .modal-title{font-family:Georgia,serif;font-size:20px;color:var(--text)}
@@ -331,14 +331,14 @@ input:focus{border-color:var(--mint)}
 </div>
 
 <div class="overlay" id="retro-overlay" onclick="handleRetroOverlayClick(event)">
-  <div class="modal">
+  <div class="modal" style="padding-bottom:calc(32px + env(safe-area-inset-bottom))">
     <div class="modal-header">
       <span class="modal-title">🕒 Arrosage rétroactif</span>
       <button class="modal-close" onclick="closeRetroWater()">✕</button>
     </div>
     <div class="field">
       <label class="label">Date et heure de l'arrosage</label>
-      <input type="datetime-local" id="retro-datetime" class="login-input" style="font-size:15px">
+      <input type="datetime-local" id="retro-datetime" style="width:100%;padding:13px 15px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box;max-width:100%">
     </div>
     <button class="btn-submit" onclick="confirmRetroWater()">Enregistrer cet arrosage 💧</button>
   </div>
