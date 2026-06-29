@@ -331,19 +331,19 @@ input:focus{border-color:var(--mint)}
 </div>
 
 <div class="overlay" id="retro-overlay" onclick="handleRetroOverlayClick(event)">
-  <div class="modal" style="padding:20px 20px calc(24px + env(safe-area-inset-bottom));max-height:50dvh">
+  <div class="modal" style="padding:20px 20px calc(24px + env(safe-area-inset-bottom));max-height:65dvh">
     <div class="modal-header" style="margin-bottom:16px">
       <span class="modal-title">🕒 Arrosage rétroactif</span>
       <button class="modal-close" onclick="closeRetroWater()">✕</button>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div style="flex:1">
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div>
         <label class="label">Date</label>
-        <input type="date" id="retro-date" style="width:100%;padding:12px 10px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
+        <input type="date" id="retro-date" style="width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
       </div>
-      <div style="flex:0 0 100px">
+      <div>
         <label class="label">Heure</label>
-        <input type="time" id="retro-time" style="width:100%;padding:12px 10px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
+        <input type="time" id="retro-time" style="width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
       </div>
     </div>
     <button class="btn-submit" onclick="confirmRetroWater()" style="margin-top:0">Enregistrer 💧</button>
