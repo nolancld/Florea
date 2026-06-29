@@ -331,16 +331,22 @@ input:focus{border-color:var(--mint)}
 </div>
 
 <div class="overlay" id="retro-overlay" onclick="handleRetroOverlayClick(event)">
-  <div class="modal" style="padding-bottom:calc(32px + env(safe-area-inset-bottom))">
-    <div class="modal-header">
+  <div class="modal" style="padding:20px 20px calc(24px + env(safe-area-inset-bottom));max-height:50dvh">
+    <div class="modal-header" style="margin-bottom:16px">
       <span class="modal-title">🕒 Arrosage rétroactif</span>
       <button class="modal-close" onclick="closeRetroWater()">✕</button>
     </div>
-    <div class="field">
-      <label class="label">Date et heure de l'arrosage</label>
-      <input type="datetime-local" id="retro-datetime" style="width:100%;padding:13px 15px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box;max-width:100%">
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <div style="flex:1">
+        <label class="label">Date</label>
+        <input type="date" id="retro-date" style="width:100%;padding:12px 10px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="flex:0 0 100px">
+        <label class="label">Heure</label>
+        <input type="time" id="retro-time" style="width:100%;padding:12px 10px;border-radius:13px;border:1.5px solid #d0c8b8;background:#fff;font-size:15px;color:var(--text);outline:none;font-family:inherit;box-sizing:border-box">
+      </div>
     </div>
-    <button class="btn-submit" onclick="confirmRetroWater()">Enregistrer cet arrosage 💧</button>
+    <button class="btn-submit" onclick="confirmRetroWater()" style="margin-top:0">Enregistrer 💧</button>
   </div>
 </div>
 
@@ -670,8 +676,9 @@ let retroPlantId=null;
 window.openRetroWater=function(id){
   retroPlantId=id;
   const now=new Date();
-  now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
-  document.getElementById('retro-datetime').value=now.toISOString().slice(0,16);
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('retro-date').value=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById('retro-time').value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   document.getElementById('retro-overlay').classList.add('open');
 };
 window.closeRetroWater=function(){
@@ -684,23 +691,19 @@ window.handleRetroOverlayClick=function(e){
 window.confirmRetroWater=async function(){
   const p=plants.find(x=>x.id===retroPlantId);
   if(!p) return;
-  const val=document.getElementById('retro-datetime').value;
-  if(!val){ showToast("Choisis une date"); return; }
-  const chosen=new Date(val);
+  const dateVal=document.getElementById('retro-date').value;
+  const timeVal=document.getElementById('retro-time').value||'12:00';
+  if(!dateVal){ showToast("Choisis une date"); return; }
+  const chosen=new Date(`${dateVal}T${timeVal}`);
+  if(isNaN(chosen.getTime())){ showToast("Date invalide"); return; }
   if(chosen > new Date()){ showToast("La date ne peut pas être dans le futur"); return; }
-
   const iso=chosen.toISOString();
-  const chosenDay=iso.slice(0,10); // YYYY-MM-DD
-
-  // Supprimer tout arrosage existant le même jour pour cette plante (évite les doublons)
+  const chosenDay=dateVal;
   const history=[...(p.history||[])].filter(h=>h.slice(0,10)!==chosenDay);
   history.push(iso);
   history.sort();
-
-  // lastWatered = toujours le plus récent de l'historique
-  p.lastWatered = history[history.length-1];
-  p.history = history.slice(-60);
-
+  p.lastWatered=history[history.length-1];
+  p.history=history.slice(-60);
   await fbSet(p);
   window.closeRetroWater();
   showToast(`${p.emoji} ${p.name} — arrosage enregistré ✓`);
