@@ -644,6 +644,11 @@ function daysLeft(p){
   const t=p.lastWatered.toDate?p.lastWatered.toDate().getTime():new Date(p.lastWatered).getTime();
   return Math.ceil((t+p.frequency*86400000-Date.now())/86400000);
 }
+function hoursLeft(p){
+  if(!p.lastWatered) return null;
+  const t=p.lastWatered.toDate?p.lastWatered.toDate().getTime():new Date(p.lastWatered).getTime();
+  return (t+p.frequency*86400000-Date.now())/3600000;
+}
 function statusOf(p){
   const d=daysLeft(p);
   if(d===null) return"unknown";if(d<=0)return"urgent";if(d<=1)return"soon";if(d<=3)return"ok";return"good";
@@ -673,10 +678,16 @@ function render(){
     return;
   }
   el.innerHTML=list.map(p=>{
-    const s=statusOf(p),d=daysLeft(p);
+    const s=statusOf(p),d=daysLeft(p),h=hoursLeft(p);
     const pct=d===null?0:Math.max(0,Math.min(100,(d/p.frequency)*100));
     const bar=s==="urgent"?"#c06040":s==="soon"?"#d4924a":s==="ok"?"#80c090":"#3ab86a";
-    const bdg=s==="urgent"?"⚠️ À arroser !":s==="unknown"?"Jamais arrosé":s==="soon"?"Demain":`Dans ${d}j`;
+    let bdg;
+    if(s==="urgent") bdg="⚠️ À arroser !";
+    else if(s==="unknown") bdg="Jamais arrosé";
+    else if(s==="soon"){
+      const hr=Math.round(h);
+      bdg = hr<=1 ? "Dans moins d'1h" : (hr<24 ? `Dans ${hr}h` : "Demain");
+    } else bdg=`Dans ${d}j`;
     const qtyLabel = p.waterQty ? ` · ${p.waterQty}${p.waterUnit||'ml'}` : '';
     return`<div class="card ${s}"><div class="card-top"><div class="plant-icon">${p.emoji}</div><div class="card-info"><div class="card-name-row"><span class="card-name">${esc(p.name)}</span><span class="badge ${s}">${bdg}</span></div><div class="card-freq">💧 ${freqLabel(p.frequency)}${qtyLabel}</div><div class="humidity-bar"><div class="humidity-fill" style="width:${pct}%;background:${bar}"></div></div><div class="card-meta">Dernier arrosage : ${fmtDate(p.lastWatered)}</div></div></div><div class="card-actions"><button class="btn-water" onclick="waterPlant('${p.id}')">💧 Arroser</button><button class="btn-icon btn-edit" onclick="openRetroWater('${p.id}')" title="Arrosé un autre jour">🕒</button><button class="btn-icon btn-edit" onclick="openEdit('${p.id}')">✏️</button><button class="btn-icon btn-delete" onclick="deletePlant('${p.id}')">🗑️</button></div></div>`;
   }).join("");
