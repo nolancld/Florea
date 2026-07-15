@@ -1,0 +1,31 @@
+name: Florea — Notifications arrosage
+
+on:
+  schedule:
+    # Toutes les heures
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permet de lancer manuellement depuis GitHub
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install firebase-admin web-push
+        working-directory: florea-notifier
+
+      - name: Run notifier
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: node index.js
+        working-directory: florea-notifier
