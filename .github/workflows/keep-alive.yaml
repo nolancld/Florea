@@ -1,0 +1,25 @@
+name: Keep Alive
+
+on:
+  schedule:
+    # Tous les ~50 jours (1er jour des mois impairs à 12h UTC)
+    - cron: '0 12 1 */2 *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Keep alive commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "$(date)" > .github/last-alive.txt
+          git add .github/last-alive.txt
+          git commit -m "chore: keep alive [skip ci]"
+          git push
