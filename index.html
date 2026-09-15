@@ -371,7 +371,6 @@ import { getFirestore, collection, getDocs, onSnapshot, doc, getDoc, setDoc, del
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const VAPID_PUBLIC = "BAEKkf7vrIX9U7u91o5TWITF2r1_BMg1Z3MQLDEIOKViSSfgh0IK3OrCsEBbOkpD11ZtnSLb76ZXjIhfcxxZpZg";
-const SERVER_URL   = "https://florea-server.onrender.com"; // ex: https://florea-server.onrender.com
 
 const firebaseConfig = {
   apiKey: "AIzaSyDPTyU5PPLCcu5sEs9qomJBkuom4tQsPbo",
@@ -562,14 +561,7 @@ async function checkExistingSub(){
   pushSub=await swReg.pushManager.getSubscription().catch(()=>null);
   if(pushSub){
     document.getElementById('notif-btn').classList.add('active');
-    // Re-enregistrer avec le gardenId au cas où c'est une ancienne sub sans gardenId
-    if(gardenId && SERVER_URL){
-      fetch(SERVER_URL+'/subscribe',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({subscription:pushSub, gardenId})
-      }).catch(()=>{});
-    }
+
   }
 }
 
@@ -591,7 +583,7 @@ window.toggleNotif=async function(){
 
   if(pushSub){
     await pushSub.unsubscribe();
-    try{ await fetch(SERVER_URL+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:pushSub, gardenId})})}catch{}
+    try{ console.log("unsubscribed"); }catch{}
     pushSub=null;
     document.getElementById('notif-btn').classList.remove('active');
     showToast("🔕 Notifications désactivées");
@@ -606,11 +598,7 @@ window.toggleNotif=async function(){
       userVisibleOnly:true,
       applicationServerKey:b64ToUint8(VAPID_PUBLIC)
     });
-    await fetch(SERVER_URL+'/subscribe',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subscription:pushSub, gardenId})
-    });
+
     document.getElementById('notif-btn').classList.add('active');
     showToast("🔔 Notifications activées !");
   }catch(e){
@@ -858,21 +846,20 @@ window.handleLogoTap=function(){
   }
 };
 async function sendTestNotif(){
+  if(!swReg){ showToast("⚠️ Service worker non prêt"); return; }
+  if(Notification.permission !== 'granted'){ showToast("⚠️ Notifications non autorisées"); return; }
   showToast("🧪 Envoi de la notif test...");
   try{
-    const res = await fetch(SERVER_URL+'/test-notif', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({gardenId})
+    await swReg.showNotification('Florea 🌿 — Test', {
+      body: '🔔 Les notifications fonctionnent !',
+      icon: './icon.png',
+      badge: './icon.png',
+      tag: 'florea-test-' + Date.now(),
+      vibrate: [200, 100, 200],
     });
-    const data = await res.json();
-    if(data.ok){
-      showToast(`✅ Test envoyé à ${data.sent}/${data.total} appareil(s)`);
-    } else {
-      showToast(`⚠️ ${data.msg||'Erreur test'}`);
-    }
+    setTimeout(()=>showToast("✅ Notif test envoyée !"), 500);
   }catch(e){
-    showToast("❌ Erreur serveur: "+e.message);
+    showToast("❌ Erreur: "+e.message);
   }
 }
 
