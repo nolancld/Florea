@@ -17,13 +17,12 @@ async function sendToSubs(subs, payload) {
   for (const { docId, sub } of subs) {
     try {
       await webpush.sendNotification(sub, JSON.stringify(payload));
-      console.log(`✅ Notif envoyée`);
+      console.log(`✅ Notif envoyée (endpoint: ...${JSON.stringify(sub.endpoint || sub).slice(-20)})`);
     } catch (err) {
+      console.error(`❌ Push FAILED — status: ${err.statusCode} — body: ${err.body} — endpoint: ...${JSON.stringify(sub.endpoint || sub).slice(-20)}`);
       if (err.statusCode === 410 || err.statusCode === 404) {
         await db.collection('subscriptions').doc(docId).delete();
         console.log('🗑️ Subscription expirée supprimée');
-      } else {
-        console.error('❌ Push error:', err.message);
       }
     }
   }
@@ -96,22 +95,31 @@ async function main() {
           tag: `plant-soon-${plantDoc.id}`,
         });
       }
-      // Notif immédiate : c'est l'heure
-      else if (hoursLeft >= -1 && hoursLeft < 0.5) {
+      // Notif immédiate : c'est l'heure ou légèrement dépassé (jusqu'à 2h de retard)
+      // Couvre les cas où le run GitHub Actions a un léger décalage
+      else if (hoursLeft >= -2 && hoursLeft < 0.5) {
         await sendToSubs(subs, {
           title: 'Florea 🌿 — À arroser !',
           body: `${p.emoji} ${p.name} a besoin d'eau maintenant !`,
           tag: `plant-now-${plantDoc.id}`,
         });
       }
-      // En retard → rappel quotidien groupé
-      else if (hoursLeft < -1) {
+      // En retard de plus de 2h → rappel quotidien groupé
+      else if (hoursLeft < -2) {
         overduePlants.push({ p, daysLate });
       }
     }
 
-    // Rappel quotidien groupé (8h-10h Paris)
+    // Rappel quotidien groupé — une seule fois par jour entre 7h et 11h Paris
     if (isReminderHour && overduePlants.length > 0) {
+      // Vérifier si on a déjà envoyé le rappel aujourd'hui pour ce jardin
+      const todayKey = `reminder_${gardenId}_${new Date().toISOString().slice(0,10)}`;
+      const alreadySent = await db.collection('_notif_state').doc(todayKey).get();
+      if (alreadySent.exists) {
+        console.log(`  ⏭️ Rappel déjà envoyé aujourd'hui pour ce jardin`);
+        continue;
+      }
+
       let payload;
       if (overduePlants.length === 1) {
         const { p, daysLate } = overduePlants[0];
@@ -130,6 +138,8 @@ async function main() {
         };
       }
       await sendToSubs(subs, payload);
+      // Marquer comme envoyé pour aujourd'hui
+      await db.collection('_notif_state').doc(todayKey).set({ sentAt: admin.firestore.FieldValue.serverTimestamp() });
       console.log(`  📬 Rappel quotidien envoyé pour ${overduePlants.length} plante(s)`);
     }
   }
