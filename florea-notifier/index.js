@@ -110,16 +110,19 @@ async function main() {
       }
     }
 
-    // Rappel quotidien groupé — une seule fois par jour entre 7h et 11h Paris
+    // Rappel quotidien groupé — entre 8h et 10h Paris
+    // Pour les runs manuels (test), on ignore l'anti-doublon
+    const isManualRun = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
     if (isReminderHour && overduePlants.length > 0) {
-      // Vérifier si on a déjà envoyé le rappel aujourd'hui pour ce jardin
+      // Vérifier si on a déjà envoyé le rappel aujourd'hui (sauf si run manuel)
       const todayKey = `reminder_${gardenId}_${new Date().toISOString().slice(0,10)}`;
-      const alreadySent = await db.collection('_notif_state').doc(todayKey).get();
-      if (alreadySent.exists) {
-        console.log(`  ⏭️ Rappel déjà envoyé aujourd'hui pour ce jardin`);
-        continue;
+      if (!isManualRun) {
+        const alreadySent = await db.collection('_notif_state').doc(todayKey).get();
+        if (alreadySent.exists) {
+          console.log(`  ⏭️ Rappel déjà envoyé aujourd'hui`);
+          continue;
+        }
       }
-
       let payload;
       if (overduePlants.length === 1) {
         const { p, daysLate } = overduePlants[0];
@@ -138,9 +141,10 @@ async function main() {
         };
       }
       await sendToSubs(subs, payload);
-      // Marquer comme envoyé pour aujourd'hui
-      await db.collection('_notif_state').doc(todayKey).set({ sentAt: admin.firestore.FieldValue.serverTimestamp() });
-      console.log(`  📬 Rappel quotidien envoyé pour ${overduePlants.length} plante(s)`);
+      if (!isManualRun) {
+        await db.collection('_notif_state').doc(todayKey).set({ sentAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+      console.log(`  📬 Rappel quotidien envoyé pour ${overduePlants.length} plante(s)${isManualRun?' (run manuel)':''}`);
     }
   }
 
