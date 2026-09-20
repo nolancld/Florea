@@ -561,7 +561,8 @@ async function checkExistingSub(){
   pushSub=await swReg.pushManager.getSubscription().catch(()=>null);
   if(pushSub){
     document.getElementById('notif-btn').classList.add('active');
-
+    // Re-sauvegarder dans Firestore à chaque lancement
+    saveSubscriptionToFirestore(pushSub);
   }
 }
 
@@ -583,7 +584,7 @@ window.toggleNotif=async function(){
 
   if(pushSub){
     await pushSub.unsubscribe();
-    try{ console.log("unsubscribed"); }catch{}
+    await deleteSubscriptionFromFirestore();
     pushSub=null;
     document.getElementById('notif-btn').classList.remove('active');
     showToast("🔕 Notifications désactivées");
@@ -599,6 +600,9 @@ window.toggleNotif=async function(){
       applicationServerKey:b64ToUint8(VAPID_PUBLIC)
     });
 
+    // Sauvegarder la subscription directement dans Firestore
+    await saveSubscriptionToFirestore(pushSub);
+
     document.getElementById('notif-btn').classList.add('active');
     showToast("🔔 Notifications activées !");
   }catch(e){
@@ -613,6 +617,47 @@ function b64ToUint8(b64){
   const arr=new Uint8Array(raw.length);
   for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
   return arr;
+}
+
+// Sauvegarder la subscription dans Firestore directement
+async function saveSubscriptionToFirestore(sub){
+  if(!db||!gardenId||!sub) return;
+  const subJson = sub.toJSON ? sub.toJSON() : sub;
+  if(!subJson.endpoint) return;
+
+  // Utiliser SHA-256 pour un docId stable et unique par endpoint
+  const msgBuffer = new TextEncoder().encode(subJson.endpoint);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const docId = Array.from(new Uint8Array(hashBuffer))
+    .map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40);
+
+  // Sauvegarder avec upsert (écrase si déjà existant)
+  try{
+    await setDoc(doc(db,'subscriptions',docId),{
+      subscription: subJson,
+      gardenId,
+      updatedAt: serverTimestamp()
+    });
+    // Stocker le docId localement pour pouvoir le retrouver plus tard
+    localStorage.setItem('florea_sub_docid', docId);
+    console.log('Subscription saved:', docId.slice(0,8)+'...');
+  }catch(e){
+    console.error('Failed to save subscription:', e);
+  }
+}
+
+// Supprimer la subscription de Firestore quand on se désabonne
+async function deleteSubscriptionFromFirestore(){
+  if(!db) return;
+  const docId = localStorage.getItem('florea_sub_docid');
+  if(!docId) return;
+  try{
+    await deleteDoc(doc(db,'subscriptions',docId));
+    localStorage.removeItem('florea_sub_docid');
+    console.log('Subscription deleted from Firestore');
+  }catch(e){
+    console.error('Failed to delete subscription:', e);
+  }
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────
@@ -846,18 +891,29 @@ window.handleLogoTap=function(){
   }
 };
 async function sendTestNotif(){
-  if(!swReg){ showToast("⚠️ Service worker non prêt"); return; }
-  if(Notification.permission !== 'granted'){ showToast("⚠️ Notifications non autorisées"); return; }
-  showToast("🧪 Envoi de la notif test...");
+  if(!db||!gardenId){ showToast("⚠️ Non connecté"); return; }
+  showToast("🧪 Envoi du test...");
   try{
-    await swReg.showNotification('Florea 🌿 — Test', {
-      body: '🔔 Les notifications fonctionnent !',
-      icon: './icon.png',
-      badge: './icon.png',
-      tag: 'florea-test-' + Date.now(),
-      vibrate: [200, 100, 200],
-    });
-    setTimeout(()=>showToast("✅ Notif test envoyée !"), 500);
+    // Récupérer toutes les subscriptions du jardin depuis Firestore
+    const subsSnap = await getDocs(collection(db,'subscriptions'));
+    const subs = subsSnap.docs
+      .filter(d=>d.data().gardenId===gardenId)
+      .map(d=>d.data().subscription);
+
+    if(subs.length===0){ showToast("⚠️ Aucun abonné trouvé"); return; }
+
+    // Envoyer via le service worker local à chaque sub
+    // (on peut juste tester localement pour l'instant)
+    if(swReg && Notification.permission==='granted'){
+      await swReg.showNotification('Florea 🌿 — Test', {
+        body: `🔔 Test envoyé à ${subs.length} appareil(s) !`,
+        icon: './icon.png',
+        badge: './icon.png',
+        tag: 'florea-test-' + Date.now(),
+        vibrate: [200, 100, 200],
+      });
+      showToast(`✅ Test local — ${subs.length} abonné(s) dans ce jardin`);
+    }
   }catch(e){
     showToast("❌ Erreur: "+e.message);
   }
