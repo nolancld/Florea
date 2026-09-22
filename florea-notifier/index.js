@@ -20,7 +20,7 @@ async function sendToSubs(subs, payload) {
       await webpush.sendNotification(sub, JSON.stringify(payload));
       console.log(`  ✅ Envoyé (...${(sub.endpoint||'').slice(-15)})`);
     } catch (err) {
-      console.error(`  ❌ Échec ${err.statusCode}: ${err.body?.slice(0,80)}`);
+      console.error(`  ❌ Échec ${err.statusCode}: ${String(err.body).slice(0,80)}`);
       if (err.statusCode === 410 || err.statusCode === 404) {
         await db.collection('subscriptions').doc(docId).delete();
         console.log('  🗑️ Subscription expirée supprimée');
@@ -29,38 +29,40 @@ async function sendToSubs(subs, payload) {
   }
 }
 
-// ── NOTIFICATION STATE ────────────────────────────────────────────────
-// Stocke dans Firestore quand on a envoyé la dernière notif par plante
-// Structure: _notif_state/{gardenId}_{plantId} = { lastNotifAt, count }
+// ── NOTIF STATE ───────────────────────────────────────────────────────
+// _notif_state/{gardenId}_{plantId} = { sentAt, count, nextSendAfter }
+// nextSendAfter = timestamp unix en ms avant lequel on n'envoie pas
 
-async function getNotifState(gardenId, plantId) {
+async function getState(gardenId, plantId) {
   try {
     const snap = await db.collection('_notif_state').doc(`${gardenId}_${plantId}`).get();
     return snap.exists ? snap.data() : null;
   } catch { return null; }
 }
 
-async function setNotifState(gardenId, plantId, data) {
+async function setState(gardenId, plantId, data) {
   try {
     await db.collection('_notif_state').doc(`${gardenId}_${plantId}`).set(data);
-  } catch (e) { console.error('Failed to save notif state:', e.message); }
+  } catch(e) { console.error('setState error:', e.message); }
 }
 
-async function clearNotifState(gardenId, plantId) {
+async function clearState(gardenId, plantId) {
   try {
     await db.collection('_notif_state').doc(`${gardenId}_${plantId}`).delete();
   } catch {}
+}
+
+function toMs(firestoreVal) {
+  if (!firestoreVal) return 0;
+  if (firestoreVal.toDate) return firestoreVal.toDate().getTime();
+  return Number(firestoreVal);
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────
 async function main() {
   const now = Date.now();
   const nowDate = new Date(now);
-  const utcHour = nowDate.getUTCHours();
-  const parisHour = (utcHour + 2) % 24;
-  const parisMinute = nowDate.getUTCMinutes();
-
-  console.log(`🕐 ${nowDate.toISOString()} — Paris: ${parisHour}h${String(parisMinute).padStart(2,'0')}`);
+  console.log(`🕐 ${nowDate.toISOString()}`);
   console.log(`📋 Run ${isManualRun ? 'MANUEL' : 'automatique'}\n`);
 
   const [gardensSnap, subsSnap] = await Promise.all([
@@ -70,6 +72,7 @@ async function main() {
 
   if (gardensSnap.empty) { console.log('Aucun jardin'); return; }
 
+  // Grouper subs par jardin
   const subsByGarden = {};
   subsSnap.docs.forEach(d => {
     const { subscription, gardenId } = d.data();
@@ -83,14 +86,14 @@ async function main() {
     const gardenName = gardenDoc.data().name || 'Jardin';
     const subs = subsByGarden[gardenId];
     if (!subs || subs.length === 0) {
-      console.log(`🌿 "${gardenName}" — aucun abonné, skip`);
+      console.log(`🌿 "${gardenName}" — aucun abonné, skip\n`);
       continue;
     }
 
-    console.log(`\n🌿 "${gardenName}" — ${subs.length} abonné(s)`);
+    console.log(`🌿 "${gardenName}" — ${subs.length} abonné(s)`);
 
     const plantsSnap = await db.collection('gardens').doc(gardenId).collection('plants').get();
-    if (plantsSnap.empty) { console.log('  Aucune plante'); continue; }
+    if (plantsSnap.empty) { console.log('  Aucune plante\n'); continue; }
 
     for (const plantDoc of plantsSnap.docs) {
       const p = plantDoc.data();
@@ -102,86 +105,80 @@ async function main() {
 
       const nextWater = last + p.frequency * 86400000;
       const hoursLeft = (nextWater - now) / 3600000;
-      const daysLate = Math.max(0, -hoursLeft / 24);
 
       console.log(`  🌱 ${p.name} — dans ${hoursLeft.toFixed(1)}h`);
 
-      // Plante bien arrosée → effacer l'état de notif
-      if (hoursLeft > 0) {
-        await clearNotifState(gardenId, plantDoc.id);
+      // Plante à jour → effacer l'état
+      if (hoursLeft > 1) {
+        await clearState(gardenId, plantDoc.id);
         continue;
       }
 
-      // Plante en retard
-      const state = await getNotifState(gardenId, plantDoc.id);
-      const lastNotifAt = state?.lastNotifAt?.toDate?.()?.getTime() || state?.lastNotifAt || 0;
-      const notifCount = state?.count || 0;
-      const hoursSinceLastNotif = (now - lastNotifAt) / 3600000;
+      // Plante bientôt due ou en retard
+      const state = await getState(gardenId, plantDoc.id);
+      const count = state?.count || 0;
+      const nextSendAfter = toMs(state?.nextSendAfter) || 0;
 
-      let shouldNotify = false;
-      let reason = '';
-
-      if (isManualRun) {
-        // Run manuel → toujours envoyer
-        shouldNotify = true;
-        reason = 'run manuel';
-      } else if (notifCount === 0) {
-        // Première notif → dès que la plante est en retard
-        shouldNotify = true;
-        reason = 'première notif (plante en retard)';
-      } else if (notifCount <= 6 && daysLate <= 3) {
-        // Jours 1-3 : notif à 10h et 18h Paris
-        const isNotifHour = (parisHour === 10 || parisHour === 18) && parisMinute < 60;
-        if (isNotifHour && hoursSinceLastNotif >= 4) {
-          shouldNotify = true;
-          reason = `rappel J+${Math.floor(daysLate)} (${parisHour}h)`;
-        }
-      } else if (daysLate > 3 && daysLate <= 10) {
-        // Jours 4-10 : 1 notif par jour à 10h
-        const isNotifHour = parisHour === 10 && parisMinute < 60;
-        if (isNotifHour && hoursSinceLastNotif >= 20) {
-          shouldNotify = true;
-          reason = `rappel quotidien J+${Math.floor(daysLate)}`;
-        }
-      } else if (daysLate > 10 && notifCount < 10) {
-        // Après 10 jours : 1 notif par semaine
-        if (hoursSinceLastNotif >= 168) {
-          shouldNotify = true;
-          reason = `rappel hebdo J+${Math.floor(daysLate)}`;
-        }
-      }
-      // Plus de notif après ça
-
-      if (!shouldNotify) {
-        console.log(`    ⏭️ Pas de notif (${notifCount} envoyées, il y a ${hoursSinceLastNotif.toFixed(1)}h)`);
+      // Ne pas envoyer si on doit attendre (sauf run manuel)
+      if (!isManualRun && now < nextSendAfter) {
+        const waitH = ((nextSendAfter - now) / 3600000).toFixed(1);
+        console.log(`    ⏭️ Prochain envoi dans ${waitH}h (${count} notif(s) déjà envoyées)`);
         continue;
       }
 
-      const daysLateStr = daysLate < 1
-        ? "aujourd'hui"
-        : `depuis ${Math.floor(daysLate)} jour${Math.floor(daysLate) > 1 ? 's' : ''}`;
+      // Calculer le délai avant la prochaine notif selon le nombre déjà envoyées
+      let nextDelayMs;
+      let title, body;
+      const daysLate = Math.max(0, -hoursLeft / 24);
 
-      const payload = {
-        title: notifCount === 0 ? 'Florea 🌿 — À arroser !' : `Florea 🌿 — Rappel`,
-        body: `${p.emoji} ${p.name} doit être arrosé ${daysLateStr} !`,
-        tag: `plant-${plantDoc.id}`,
-      };
+      if (count === 0 && hoursLeft >= -1 && hoursLeft <= 1) {
+        // Notif d'échéance : c'est l'heure !
+        title = 'Florea 🌿 — C\'est l\'heure !';
+        body = `${p.emoji} ${p.name} doit être arrosé aujourd'hui !`;
+        nextDelayMs = 10 * 3600000; // prochain dans 10h
+      } else if (count === 0 && hoursLeft < -1) {
+        // Première notif mais déjà en retard (run raté)
+        title = 'Florea 🌿 — À arroser !';
+        body = `${p.emoji} ${p.name} aurait dû être arrosé il y a ${Math.floor(daysLate * 24)}h !`;
+        nextDelayMs = 8 * 3600000;
+      } else if (count <= 4) {
+        // Rappels J+1 à J+3 : toutes les 8h
+        title = 'Florea 🌿 — Rappel';
+        body = `${p.emoji} ${p.name} attend d'être arrosé depuis ${Math.floor(daysLate)} jour${Math.floor(daysLate) > 1 ? 's' : ''} !`;
+        nextDelayMs = 8 * 3600000;
+      } else if (count <= 7) {
+        // J+4 à J+7 : 1 fois par jour
+        title = 'Florea 🌿 — Rappel';
+        body = `${p.emoji} ${p.name} n'a pas été arrosé depuis ${Math.floor(daysLate)} jours !`;
+        nextDelayMs = 24 * 3600000;
+      } else if (count <= 9) {
+        // Semaine suivante : 1 fois par semaine
+        title = 'Florea 🌿';
+        body = `${p.emoji} ${p.name} attend toujours d'être arrosé...`;
+        nextDelayMs = 7 * 24 * 3600000;
+      } else {
+        // Plus de notif après 10 envois
+        console.log(`    🔕 Limite de notifs atteinte (${count}), on arrête`);
+        continue;
+      }
 
-      console.log(`    📬 Envoi (${reason})`);
-      await sendToSubs(subs, payload);
+      console.log(`    📬 Envoi notif #${count + 1}`);
+      await sendToSubs(subs, { title, body, tag: `plant-${plantDoc.id}` });
 
-      // Sauvegarder l'état
+      // Sauvegarder l'état seulement pour les runs automatiques
       if (!isManualRun) {
-        await setNotifState(gardenId, plantDoc.id, {
-          lastNotifAt: admin.firestore.FieldValue.serverTimestamp(),
-          count: notifCount + 1,
+        await setState(gardenId, plantDoc.id, {
+          count: count + 1,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          nextSendAfter: now + nextDelayMs,
           plantName: p.name,
         });
       }
     }
+    console.log('');
   }
 
-  console.log('\n✅ Terminé');
+  console.log('✅ Terminé');
   process.exit(0);
 }
 
